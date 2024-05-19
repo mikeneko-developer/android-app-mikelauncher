@@ -25,6 +25,7 @@ import androidx.viewpager2.widget.ViewPager2
 import net.mikemobile.mikelauncher.MainActivity
 import net.mikemobile.mikelauncher.R
 import net.mikemobile.mikelauncher.constant.CELL_POINT_NAME
+import net.mikemobile.mikelauncher.constant.DataManagement
 import net.mikemobile.mikelauncher.constant.Global
 import net.mikemobile.mikelauncher.constant.GridPoint
 import net.mikemobile.mikelauncher.constant.HomeItemType
@@ -45,7 +46,7 @@ class HomeFragment : Fragment(),
     }
 
     private lateinit var viewModel: HomeViewModel
-    private lateinit var adapter: GridAdapter
+    private lateinit var desktopAdapter: GridAdapter
     private lateinit var dockAdapter: GridAdapter
 
     private var gridPage = 0
@@ -119,7 +120,7 @@ class HomeFragment : Fragment(),
         dragAndDropView?.setLowerDesktopView(viewPager!!)
 
 
-        adapter = GridAdapter(
+        desktopAdapter = GridAdapter(
             context = this.requireContext(),
             viewPager = viewPager!!,
             viewType = CELL_POINT_NAME.DESKTOP,
@@ -129,7 +130,7 @@ class HomeFragment : Fragment(),
             listener = this
         )
 
-        viewPager!!.adapter = adapter
+        viewPager!!.adapter = desktopAdapter
         viewPager!!.offscreenPageLimit = 5
 
 
@@ -197,7 +198,7 @@ class HomeFragment : Fragment(),
         viewPager!!.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(posi: Int) {
                 gridPage = posi
-                adapter.setPage(posi)
+                desktopAdapter.setPage(posi)
             }
         })
 
@@ -498,12 +499,12 @@ class HomeFragment : Fragment(),
             Global.homeItemList.addItem(gridPage, homeItem)
             pref.setAppsList()
 
-            adapter.addGrid(child, homeItem)
+            desktopAdapter.addGrid(child, homeItem)
         } else {
             val homeItem = Global.homeItemList.getWidgetHomeItem(gridPage, widgetId)
 
             homeItem?.let {
-                adapter.changeGrid(child, homeItem)
+                desktopAdapter.changeGrid(child, homeItem)
             }
         }
 
@@ -645,9 +646,6 @@ class HomeFragment : Fragment(),
         android.util.Log.i(TAG,"setGridItem >> item.toolId:" + item.toolId)
 
         // Gridの移動
-
-
-
         val viewSize = viewPager!!.getSize()
         val oneWidth = viewSize.width / Global.COLUMN_COUNT
         val oneHeight = viewSize.height / Global.ROW_COUNT
@@ -668,17 +666,35 @@ class HomeFragment : Fragment(),
 
                 val moveItem = Global.homeItemList.addItem(gridPage, row, column, item)
 
-                adapter.selectItem(view, row, column, moveItem)
+                if (moveItem == DataManagement.ITEM_MOVE.MOVE_NG) {
+                    item.row = prevRow
+                    item.column = prevColumn
+                    Global.homeItemList.setItem(gridPage, prevRow, prevColumn, item)
+                    adapter.selectItem(view, prevRow, prevColumn, false)
+                } else {
+                    item.row = row
+                    item.column = column
+                    val moveItemEnable = moveItem == DataManagement.ITEM_MOVE.MOVING_ITEM_ENABLED
+                    adapter.selectItem(view, row, column, moveItemEnable)
+                }
 
             } else if (cellPointName == CELL_POINT_NAME.DOCK) {
                 // 移動前のデータをリストから消す
                 Global.dockItemList.removeHomeItem(0, 0, prevColumn)
 
                 val moveItem = Global.dockItemList.addItem(0, 0, column, item)
-                adapter.selectItem(view, 0, column, moveItem)
-
+                if (moveItem == DataManagement.ITEM_MOVE.MOVE_NG) {
+                    item.row = 0
+                    item.column = prevColumn
+                    Global.dockItemList.setItem(0, 0, prevColumn, item)
+                    adapter.selectItem(view, 0, column, false)
+                } else {
+                    item.row = 0
+                    item.column = column
+                    val moveItemEnable = moveItem == DataManagement.ITEM_MOVE.MOVING_ITEM_ENABLED
+                    adapter.selectItem(view, 0, column, moveItemEnable)
+                }
             }
-
 
         } else {
             // 移動先が違う
@@ -693,7 +709,17 @@ class HomeFragment : Fragment(),
 
                 val moveItem = Global.homeItemList.addItem(gridPage, row, column, item)
 
-                adapter.selectItem(view, row, column, moveItem)
+                if (moveItem == DataManagement.ITEM_MOVE.MOVE_NG) {
+                    item.row = 0
+                    item.column = prevColumn
+                    Global.dockItemList.setItem(0, 0, prevColumn, item)
+                    dockAdapter.selectItem(view, 0, column, false)
+                } else {
+                    item.row = row
+                    item.column = column
+                    val moveItemEnable = moveItem == DataManagement.ITEM_MOVE.MOVING_ITEM_ENABLED
+                    adapter.selectItem(view, row, column, moveItemEnable)
+                }
 
             } else if (cellPointName == CELL_POINT_NAME.DOCK) {
                 val prevRow = item.row
@@ -706,9 +732,18 @@ class HomeFragment : Fragment(),
                 Global.homeItemList.removeHomeItem(gridPage, prevRow, prevColumn)
 
                 val moveItem = Global.dockItemList.addItem(0, row, column, item)
-                adapter.selectItem(view, row, column, moveItem)
 
-
+                if (moveItem == DataManagement.ITEM_MOVE.MOVE_NG) {
+                    item.row = prevRow
+                    item.column = prevColumn
+                    Global.homeItemList.setItem(gridPage, prevRow, prevColumn, item)
+                    this.desktopAdapter.selectItem(view, prevRow, prevColumn, false)
+                } else {
+                    item.row = 0
+                    item.column = column
+                    val moveItemEnable = moveItem == DataManagement.ITEM_MOVE.MOVING_ITEM_ENABLED
+                    adapter.selectItem(view, 0, column, moveItemEnable)
+                }
             }
         }
 
@@ -755,12 +790,16 @@ class HomeFragment : Fragment(),
 
         if (dragAndDrop) {
             if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-                endDragAndDrop(adapter, cellPointName, point)
+                endDragAndDrop(desktopAdapter, cellPointName, point)
             } else if (cellPointName == CELL_POINT_NAME.DOCK) {
                 endDragAndDrop(dockAdapter, cellPointName, point)
             }
         }
     }
+
+    /**
+     * DragAndDropViewのクリック判定
+     */
     override fun onTouchClick(cellPointName: CELL_POINT_NAME, point: DragAndDropView.DimensionPoint) {
         if (dragAndDrop) return
 
@@ -789,8 +828,6 @@ class HomeFragment : Fragment(),
     }
 
 
-
-
     /**
      *
      */
@@ -798,7 +835,7 @@ class HomeFragment : Fragment(),
         android.util.Log.i(TAG,"onLongTouchDown　" + cellPointName)
 
         if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-            val gridPoint = adapter.getGridPoint(point)
+            val gridPoint = desktopAdapter.getGridPoint(point)
             val homeItem = Global.homeItemList.getItem(gridPage, gridPoint.row, gridPoint.column)
             android.util.Log.i(TAG,"homeItem is null = " + (homeItem == null))
             if (homeItem == null) {
@@ -806,7 +843,7 @@ class HomeFragment : Fragment(),
                 return
             }
 
-            setDragAndDropData(adapter, cellPointName, point)
+            setDragAndDropData(desktopAdapter, cellPointName, point)
         } else if (cellPointName == CELL_POINT_NAME.DOCK) {
             val gridPoint = dockAdapter.getGridPoint(point)
             val homeItem = Global.dockItemList.getItem(0, 0, gridPoint.column)
@@ -816,16 +853,11 @@ class HomeFragment : Fragment(),
                 return
             }
 
-
             setDragAndDropData(dockAdapter, cellPointName, point)
         } else {
             android.util.Log.i(TAG,"cellPointName = " + cellPointName)
         }
-
     }
-
-
-
 
     var moveLog = false
     override fun onSelectGridPoint(
@@ -852,49 +884,39 @@ class HomeFragment : Fragment(),
                     if (moveToPrevItemDelete) {
                         moveToPrevItemDelete = false
                         if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-                            adapter.removePageItem(gridPage, dragItem!!.row, dragItem!!.column)
+                            desktopAdapter.removePageItem(gridPage, dragItem!!.row, dragItem!!.column)
                         } else if (cellPointName == CELL_POINT_NAME.DOCK) {
                             dockAdapter.removePageItem(0, dragItem!!.row, dragItem!!.column)
                         }
                     }
-
                 }
-                //adapter.updateGridPage(gridPoint)
-
             }
 
             MotionEvent.ACTION_UP -> {
                 dragAndDropView?.setDragAnimationDisable()
                 if (!openIconMenuEnable) {
                     android.util.Log.i(TAG, "onSelectGridPoint >> gridPoint: MotionEvent.ACTION_UP")
-                    //adapter.updateGridPage(gridPoint)
 
+                    when (cellPointName) {
+                        CELL_POINT_NAME.DESKTOP -> {
 
-                    if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-
-                    } else if (cellPointName == CELL_POINT_NAME.DOCK) {
-
-                    } else if (cellPointName == CELL_POINT_NAME.DOT) {
-                        // 置き場所じゃないので元の場所に返す
-                        dragItem?.let {
-                            val gridPointPrev = GridPoint(it.row, it.column)
                         }
+                        CELL_POINT_NAME.DOCK -> {
 
+                        }
+                        CELL_POINT_NAME.DOT -> {
+                            // 置き場所じゃないので元の場所に返す
+                            dragItem?.let {
+                                val gridPointPrev = GridPoint(it.row, it.column)
+                            }
+                        }
                     }
                 }
             }
         }
-
-
     }
 
-
-
     ///////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
 
     /**
      * １マスのアイテムが追加されたら、現在表示しているページ上のGridに追加する
@@ -904,7 +926,7 @@ class HomeFragment : Fragment(),
         val view = createItemView(requireContext(), item)
 
         // gridに配置する
-        adapter.addGrid(view, item)
+        desktopAdapter.addGrid(view, item)
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -917,7 +939,7 @@ class HomeFragment : Fragment(),
 
         val view = createMenuView(requireContext(), width)
 
-        val gridPoint = adapter.getGridPoint(DragAndDropView.DimensionPoint(positionX, positionY))
+        val gridPoint = desktopAdapter.getGridPoint(DragAndDropView.DimensionPoint(positionX, positionY))
 
         val displaySize = viewPager!!.getSize()
 
@@ -942,9 +964,6 @@ class HomeFragment : Fragment(),
         view.translationX = startX.toFloat()
         view.translationY = startY.toFloat()
 
-
-
-
         val deleteButton = view.findViewById(R.id.button_delete) as LinearLayout
         deleteButton?.setOnClickListener {
 
@@ -952,11 +971,10 @@ class HomeFragment : Fragment(),
 
                 val widgetId = item.widgetId
                 removeWidget(widgetId)
-
             }
 
             Global.homeItemList.removeHomeItem(gridPage, item.row, item.column)
-            adapter.removePageItem(gridPage, item.row, item.column)
+            desktopAdapter.removePageItem(gridPage, item.row, item.column)
             pref.setAppsList()
 
             closeIconMenu()
@@ -993,8 +1011,6 @@ class HomeFragment : Fragment(),
         closeIconMenu()
     }
 
-
-
     ///////////////////////////////////////////////////////////////////////////////////////////////
     fun openToolDialog() {
         android.util.Log.i(TAG,"openToolDialog")
@@ -1022,7 +1038,7 @@ class HomeFragment : Fragment(),
 
         val child = createItemView(requireContext(), homeItem)
 
-        adapter.addGrid(child, homeItem)
+        desktopAdapter.addGrid(child, homeItem)
     }
 
 
@@ -1040,4 +1056,5 @@ class HomeFragment : Fragment(),
 
         dialog.show(this.parentFragmentManager, "")
     }
+
 }

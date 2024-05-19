@@ -18,8 +18,8 @@ class Global {
         const val COLUMN_COUNT = 5
         const val ROW_COUNT = 7
 
-        val homeItemList = DataManagement()
-        val dockItemList = DataManagement()
+        val homeItemList = DataManagement(CELL_POINT_NAME.DESKTOP)
+        val dockItemList = DataManagement(CELL_POINT_NAME.DOCK)
 
         var selectItem: MutableLiveData<HomeItem> = MutableLiveData<HomeItem>(null)
 

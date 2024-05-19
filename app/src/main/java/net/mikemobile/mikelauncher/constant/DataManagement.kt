@@ -2,7 +2,13 @@ package net.mikemobile.mikelauncher.constant
 
 import net.mikemobile.mikelauncher.data.HomeItem
 
-class DataManagement {
+class DataManagement(private val cellPointName: CELL_POINT_NAME) {
+    enum class ITEM_MOVE {
+        MOVING_ITEM_ENABLED, // 他に移動するアイテムあり
+        MOVING_ITEM_NONE, // 他に移動するアイテムなし
+        MOVE_NG,// 指定場所にアイテムが移動できない
+
+    }
 
     val itemList = HashMap<String, HashMap<String, HomeItem>>()
 
@@ -55,8 +61,8 @@ class DataManagement {
         row: Int,
         column: Int,
         item: HomeItem,
-        update: Boolean = false
-    ): Boolean {
+        update: ITEM_MOVE = ITEM_MOVE.MOVING_ITEM_NONE
+    ): ITEM_MOVE {
         val key = "" + position
 
         val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
@@ -79,8 +85,13 @@ class DataManagement {
         } else {
             // データある場合
 
+            // 指定場所以降にスペースがあるかチェックする
+            var blancCellEnable = checkBlank(list, row, column)
+
+            if (!blancCellEnable) return ITEM_MOVE.MOVE_NG
+
             // もともと入っているデータを取り出す
-            var outputItem = list[addItemKey]
+            val outputItem = list[addItemKey]
 
             list[addItemKey] = item
             itemList[key] = list
@@ -95,11 +106,38 @@ class DataManagement {
                 }
 
                 // メソッドの際入れ子呼び出しを実施する
-                return addItem(position, newRow, newColumn, outputItem, true)
+                return addItem(position, newRow, newColumn, outputItem, ITEM_MOVE.MOVING_ITEM_ENABLED)
             }
         }
 
         return update
+    }
+
+    private fun checkBlank(list: HashMap<String, HomeItem>, row: Int, column: Int): Boolean {
+        val rowMax = if (cellPointName == CELL_POINT_NAME.DOCK) {
+            1
+        } else {
+            Global.ROW_COUNT
+        }
+
+
+        for(rowId in row until rowMax) {
+            for(columnId in 0 until Global.COLUMN_COUNT ) {
+                if (rowId == row) {
+                    if (columnId >= column) {
+                        val addItemKey = "$rowId-$columnId"
+
+                        list[addItemKey] ?: return true
+                    }
+                } else {
+                    val addItemKey = "$rowId-$columnId"
+
+                    list[addItemKey] ?: return true
+                }
+            }
+        }
+
+        return false
     }
 
 

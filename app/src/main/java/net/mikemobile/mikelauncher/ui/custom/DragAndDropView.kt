@@ -94,6 +94,10 @@ class DragAndDropView: ConstraintLayout {
             listener?.onTouchMove(DimensionPoint(it.x, it.y))
         }
 
+        data?.let {
+            outlineImage = processImageToOutline(data)
+        }
+
         invalidate()
     }
 
@@ -157,7 +161,6 @@ class DragAndDropView: ConstraintLayout {
             }
 
             for(columnId in 0 until column) {
-
                 canvas.drawLine(
                     oneCellSize.width * columnId,
                     0f,
@@ -165,25 +168,15 @@ class DragAndDropView: ConstraintLayout {
                     oneCellSize.height * row,
                     paint
                 )
-
             }
-
-
-
         }
-
 
         if (dragAnimation) {
             data?.let { image ->
-                android.util.Log.i(TAG, "画像データあり")
 
                 if (cellPointName != CELL_POINT_NAME.DOT) {
 
                     cellPoint?.let { cell ->
-                        if (outlineImage == null) {
-                            outlineImage = processImageToOutline(image)
-                        }
-
                         outlineImage?.let { img ->
                             val positionX = cell.column * oneCellSize.width
                             var positionY = cell.row * oneCellSize.height
@@ -194,18 +187,13 @@ class DragAndDropView: ConstraintLayout {
 
                             val matrix = Matrix()
                             matrix.postTranslate(positionX, positionY)
-                            //
 
+                            //
                             android.util.Log.i(TAG, "配置予定位置の描画")
                             canvas.drawBitmap(img, matrix, paint)
                         }
-
                     }
-
                 }
-
-
-
 
                 iconPoint?.let { iconPoint ->
                     movePosition?.let { move ->
@@ -214,8 +202,8 @@ class DragAndDropView: ConstraintLayout {
 
                         val matrix = Matrix()
                         matrix.postTranslate(positionX, positionY)
-                        //
 
+                        //
                         android.util.Log.i(TAG, "アイコン描画")
                         canvas.drawBitmap(image, matrix, paint)
                     }
@@ -232,7 +220,6 @@ class DragAndDropView: ConstraintLayout {
 
         // Cell位置の計算
         selectCell(motionEvent)
-
 
         var clear = false
         when (motionEvent.action) {
@@ -288,6 +275,8 @@ class DragAndDropView: ConstraintLayout {
         }
         if (!clear && lowerDesktopView != null && cellPointName == CELL_POINT_NAME.DESKTOP) {
             lowerDesktopView!!.dispatchTouchEvent(motionEvent)
+        } else if (!clear && lowerDesktopView != null && cellPointName == CELL_POINT_NAME.DOT) {
+            lowerDesktopView!!.dispatchTouchEvent(motionEvent)
         } else if (!clear && lowerDockView != null && cellPointName == CELL_POINT_NAME.DOCK) {
             lowerDockView!!.dispatchTouchEvent(motionEvent)
         }
@@ -303,7 +292,6 @@ class DragAndDropView: ConstraintLayout {
         movePosition = null
         invalidate()
     }
-
 
     data class DimensionPoint(val x: Float, val y: Float)
 
