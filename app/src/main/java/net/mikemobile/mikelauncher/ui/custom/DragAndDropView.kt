@@ -332,8 +332,8 @@ class DragAndDropView: ConstraintLayout {
     private fun checkMinMove(movePosition: DimensionPoint): Boolean {
         if (oneCellSize.width == -1f || oneCellSize.height == -1f) return false
 
-        val border = oneCellSize.width / 3f
-        val borderHeight = oneCellSize.height / 5f
+        val border = oneCellSize.width / 2f
+        val borderHeight = oneCellSize.height / 3f
 
         android.util.Log.i("TESTESTEST","movePosition.x" + movePosition!!.x)
 
@@ -432,6 +432,7 @@ class DragAndDropView: ConstraintLayout {
     var longClickCheck = false
     private var timer : Timer? = null
     private fun startTimer() {
+        android.util.Log.i(TAG,"startTimer")
         longClickCheck = true
 
         if (timer != null && !timer!!.isCancel) {
@@ -455,6 +456,7 @@ class DragAndDropView: ConstraintLayout {
     }
 
     private fun cancelTimer() {
+        android.util.Log.i(TAG,"cancelTimer")
         longClickCheck = false
         if (timer != null) {
             timer!!.cancel()

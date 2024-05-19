@@ -1,7 +1,6 @@
 package net.mikemobile.mikelauncher.ui.applist
 
 import android.content.*
-import android.content.pm.PackageManager
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -9,10 +8,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import net.mikemobile.mikelauncher.MainActivity
 import net.mikemobile.mikelauncher.R
 import net.mikemobile.mikelauncher.constant.Global
@@ -53,7 +50,7 @@ class AppListFragment : Fragment() {
         }
 
 
-        recyclerView = this.view?.findViewById(R.id.recyclerview)
+        recyclerView = this.view?.findViewById(R.id.recyclerView)
 
 
         adapter = AppAdapter(layoutInflater) { view, info ->

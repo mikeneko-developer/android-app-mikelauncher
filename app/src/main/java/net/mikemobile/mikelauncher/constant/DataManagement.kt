@@ -3,12 +3,6 @@ package net.mikemobile.mikelauncher.constant
 import net.mikemobile.mikelauncher.data.HomeItem
 
 class DataManagement(private val cellPointName: CELL_POINT_NAME) {
-    enum class ITEM_MOVE {
-        MOVING_ITEM_ENABLED, // 他に移動するアイテムあり
-        MOVING_ITEM_NONE, // 他に移動するアイテムなし
-        MOVE_NG,// 指定場所にアイテムが移動できない
-
-    }
 
     val itemList = HashMap<String, HashMap<String, HomeItem>>()
 
@@ -160,6 +154,58 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
 
         return false
     }
+
+    /**
+     * フォルダー判定
+     */
+    fun checkToolToFolder(position: Int, row: Int, column: Int): Boolean {
+        val key = "" + position
+
+        val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+            HashMap<String, HomeItem>()
+        } else {
+            itemList[key]!!
+        }
+
+        val addItemKey = "$row-$column"
+
+        if (list.containsKey(addItemKey)) {
+            val item = list[addItemKey]
+            if (item!!.toolId == 2) {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    /**
+     * フォルダーアイテム取得
+     */
+    fun getFolderItem(position: Int, row: Int, column: Int): HomeItem? {
+        val key = "" + position
+
+        val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+            HashMap<String, HomeItem>()
+        } else {
+            itemList[key]!!
+        }
+
+        val addItemKey = "$row-$column"
+
+        if (list.containsKey(addItemKey)) {
+            val item = list[addItemKey]
+            if (item!!.toolId == 2) {
+                return item
+            }
+        }
+
+        return null
+    }
+
+
+
+
 
     fun getWidgetHomeItem(position: Int, widgetId: Int): HomeItem? {
         val key = "" + position

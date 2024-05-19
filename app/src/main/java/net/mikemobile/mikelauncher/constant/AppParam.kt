@@ -14,6 +14,12 @@ enum class CELL_POINT_NAME(val value: Int) {
     DOCK(3)
 }
 
+enum class ITEM_MOVE {
+    MOVING_ITEM_ENABLED, // 他に移動するアイテムあり
+    MOVING_ITEM_NONE, // 他に移動するアイテムなし
+    MOVE_NG,// 指定場所にアイテムが移動できない
+
+}
 
 data class CellSize(var width: Float, var height: Float)
 data class DimenPoint(val x: Float, val y: Float)

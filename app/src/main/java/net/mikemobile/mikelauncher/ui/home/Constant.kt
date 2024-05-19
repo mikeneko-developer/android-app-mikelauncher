@@ -64,6 +64,55 @@ fun createToolItemView(context: Context, item: HomeItem): View {
     return itemView
 }
 
+
+@SuppressLint("MissingInflatedId")
+fun createToolFolderView(context: Context, item: HomeItem, list: ArrayList<HomeItem>): View {
+    val layoutParams = LinearLayout.LayoutParams(
+        MATCH_PARENT,
+        MATCH_PARENT
+    )
+
+    val itemView = LayoutInflater.from(context).inflate(R.layout.folder_icon, null, false)
+    itemView.layoutParams = layoutParams
+
+    val imageView = itemView.findViewById<ImageView>(R.id.icon_image)
+    imageView.setImageDrawable(item.icon)
+
+    val textView = itemView.findViewById<TextView>(R.id.icon_name)
+    textView.text = item.label
+
+    val imageView1 = itemView.findViewById<ImageView>(R.id.imageView1)
+    val imageView2 = itemView.findViewById<ImageView>(R.id.imageView2)
+    val imageView3 = itemView.findViewById<ImageView>(R.id.imageView3)
+    val imageView4 = itemView.findViewById<ImageView>(R.id.imageView4)
+
+    if (list.size > 0) {
+        imageView1.setImageDrawable(list[0].icon)
+    } else {
+        imageView1.setImageDrawable(null)
+    }
+    if (list.size > 1) {
+        imageView2.setImageDrawable(list[1].icon)
+    } else {
+        imageView2.setImageDrawable(null)
+    }
+    if (list.size > 2) {
+        imageView3.setImageDrawable(list[2].icon)
+    } else {
+        imageView3.setImageDrawable(null)
+    }
+    if (list.size > 3) {
+        imageView4.setImageDrawable(list[3].icon)
+    } else {
+        imageView4.setImageDrawable(null)
+    }
+
+    val innerLayout = getInnerLayout(context)
+    innerLayout.addView(itemView)
+
+    return itemView
+}
+
 fun getRowColumnToPosition(row: Int, column: Int): Int {
     var itemCount = -1
     var lastPosi = -1
@@ -186,6 +235,34 @@ fun createMenuView(context: Context, width: Int): View {
 
     val itemView = LayoutInflater.from(context).inflate(R.layout.float_menu, null, false)
     itemView.layoutParams = layoutParams
+
+    return itemView
+}
+
+@SuppressLint("InflateParams")
+fun createToolListView(context: Context, width: Int): View {
+    val layoutParams = LinearLayout.LayoutParams(
+        width,
+        WRAP_CONTENT
+    )
+
+    val itemView = LayoutInflater.from(context).inflate(R.layout.float_tool_list, null, false)
+    itemView.layoutParams = layoutParams
+
+
+    return itemView
+}
+
+@SuppressLint("InflateParams")
+fun createFolderInItemListView(context: Context, width: Int, height: Int): View {
+    val layoutParams = LinearLayout.LayoutParams(
+        width,
+        height
+    )
+
+    val itemView = LayoutInflater.from(context).inflate(R.layout.float_tool_list, null, false)
+    itemView.layoutParams = layoutParams
+
 
     return itemView
 }

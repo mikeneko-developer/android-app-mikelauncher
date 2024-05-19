@@ -17,22 +17,29 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.content.res.ResourcesCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.viewpager2.widget.ViewPager2
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.mikemobile.mikelauncher.MainActivity
 import net.mikemobile.mikelauncher.R
 import net.mikemobile.mikelauncher.constant.CELL_POINT_NAME
-import net.mikemobile.mikelauncher.constant.DataManagement
 import net.mikemobile.mikelauncher.constant.Global
 import net.mikemobile.mikelauncher.constant.GridPoint
 import net.mikemobile.mikelauncher.constant.HomeItemType
+import net.mikemobile.mikelauncher.constant.ITEM_MOVE
 import net.mikemobile.mikelauncher.data.AppPreference
 import net.mikemobile.mikelauncher.data.HomeItem
 import net.mikemobile.mikelauncher.ui.custom.DragAndDropView
 import net.mikemobile.mikelauncher.ui.custom.OverlayMenuView
+import net.mikemobile.mikelauncher.ui.custom_float.AppMenuFloatDialog
+import net.mikemobile.mikelauncher.ui.custom_float.FolderFloatDialog
+import net.mikemobile.mikelauncher.ui.custom_float.ToolItemListFloatDialog
 import net.mikemobile.mikelauncher.ui.dialog.MenuDialog
 
 
@@ -303,7 +310,7 @@ class HomeFragment : Fragment(),
 
         //android.util.Log.i("TESTESTEST","item:" + item.label)
 
-        Global.homeItemList.addItem(gridPage, item)
+        Global.homeItemData.addItem(gridPage, item)
         pref.setAppsList()
 
         // 追加されたアイテムを対象のページのグリッド上に配置する
@@ -482,7 +489,7 @@ class HomeFragment : Fragment(),
     fun addWodiget(child: View, widgetId: Int) {
         Log.i("TESTTEST", "addWodiget  appWidgetId:" + appWidgetId)
 
-        if (!Global.homeItemList.checkWidget(gridPage, widgetId)) {
+        if (!Global.homeItemData.checkWidget(gridPage, widgetId)) {
             val homeItem = HomeItem(
                 -1,
                 "",
@@ -496,12 +503,12 @@ class HomeFragment : Fragment(),
             homeItem.widgetId = widgetId
 
 
-            Global.homeItemList.addItem(gridPage, homeItem)
+            Global.homeItemData.addItem(gridPage, homeItem)
             pref.setAppsList()
 
             desktopAdapter.addGrid(child, homeItem)
         } else {
-            val homeItem = Global.homeItemList.getWidgetHomeItem(gridPage, widgetId)
+            val homeItem = Global.homeItemData.getWidgetHomeItem(gridPage, widgetId)
 
             homeItem?.let {
                 desktopAdapter.changeGrid(child, homeItem)
@@ -534,16 +541,30 @@ class HomeFragment : Fragment(),
     override fun onGridPositionView(viewType: CELL_POINT_NAME, layout: LinearLayout, position: Int, row: Int, column: Int) {
 
         val item: HomeItem? = if (viewType == CELL_POINT_NAME.DESKTOP) {
-            Global.homeItemList.getItem(position, row, column)
+            Global.homeItemData.getItem(position, row, column)
+        } else if (viewType == CELL_POINT_NAME.DOCK) {
+            Global.dockItemData.getItem(position, row, column)
         } else {
-            Global.dockItemList.getItem(position, row, column)
+            null
         }
 
         item?.let {
             if (it.toolId != -1) {
 
-                val view = createToolItemView(requireContext(), it)
-                layout.addView(view)
+                if (it.toolId == 2) {
+                    // データを追加する
+                    val list = Global.folderManager.getList(it.folderId)
+
+                    val folderView = createToolFolderView(requireContext(), it, list)
+
+                    val parent = folderView.parent as ViewGroup
+                    parent?.removeView(folderView)
+
+                    layout.addView(folderView)
+                } else {
+                    val view = createItemView(requireContext(), it)
+                    layout.addView(view)
+                }
 
             } else if (it.widgetId != -1) {
                 val view = getWidgetView(this.requireActivity().applicationContext, mAppWidgetHost!!, it.widgetId)
@@ -594,10 +615,10 @@ class HomeFragment : Fragment(),
 
 
         val homeItem = if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-            Global.homeItemList.getItem(gridPage, gridPoint.row, gridPoint.column)
+            Global.homeItemData.getItem(gridPage, gridPoint.row, gridPoint.column)
         } else if (cellPointName == CELL_POINT_NAME.DOCK) {
             gridPoint.row = 0
-            Global.dockItemList.getItem(0, gridPoint.row, gridPoint.column)
+            Global.dockItemData.getItem(0, gridPoint.row, gridPoint.column)
         } else {
             null
         }
@@ -629,7 +650,7 @@ class HomeFragment : Fragment(),
 
         //adapter.removePageItem(gridPage,gridPoint.row, gridPoint.column)
 
-        openIconMenu(homeItem, positionX, positionY)
+        openIconMenu(cellPointName, homeItem, positionX, positionY)
     }
 
     /**
@@ -655,43 +676,70 @@ class HomeFragment : Fragment(),
             val column = (point.x / oneWidth).toInt()
             val row = (point.y / oneHeight).toInt()
 
-
             val prevRow = item.row
             val prevColumn = item.column
 
             if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-
                 // 移動前のデータをリストから消す
-                Global.homeItemList.removeHomeItem(gridPage, prevRow, prevColumn)
+                Global.homeItemData.removeHomeItem(gridPage, prevRow, prevColumn)
 
-                val moveItem = Global.homeItemList.addItem(gridPage, row, column, item)
+                if (Global.homeItemData.checkToolToFolder(gridPage, row, column)) {
+                    // フォルダなので特殊な操作をする
+                    if (item.widgetId != -1) {
+                        //widgetなので元に戻す
 
-                if (moveItem == DataManagement.ITEM_MOVE.MOVE_NG) {
-                    item.row = prevRow
-                    item.column = prevColumn
-                    Global.homeItemList.setItem(gridPage, prevRow, prevColumn, item)
-                    adapter.selectItem(view, prevRow, prevColumn, false)
+                        item.row = prevRow
+                        item.column = prevColumn
+                        Global.homeItemData.setItem(gridPage, prevRow, prevColumn, item)
+                        adapter.selectItem(view, prevRow, prevColumn, false)
+
+                    } else {
+
+                        val folderItem = Global.homeItemData.getFolderItem(gridPage, row, column)
+
+                        if (folderItem != null) {
+                            // テストのために一時的に戻す
+                            setFolderInApp(folderItem, item)
+                        } else {
+                            // なぜかデータが取れなかったので元に戻す
+                            item.row = prevRow
+                            item.column = prevColumn
+                            Global.homeItemData.setItem(gridPage, prevRow, prevColumn, item)
+                            adapter.selectItem(view, prevRow, prevColumn, false)
+
+                        }
+                    }
+
                 } else {
-                    item.row = row
-                    item.column = column
-                    val moveItemEnable = moveItem == DataManagement.ITEM_MOVE.MOVING_ITEM_ENABLED
-                    adapter.selectItem(view, row, column, moveItemEnable)
+                    val moveItem = Global.homeItemData.addItem(gridPage, row, column, item)
+
+                    if (moveItem == ITEM_MOVE.MOVE_NG) {
+                        item.row = prevRow
+                        item.column = prevColumn
+                        Global.homeItemData.setItem(gridPage, prevRow, prevColumn, item)
+                        adapter.selectItem(view, prevRow, prevColumn, false)
+                    } else {
+                        item.row = row
+                        item.column = column
+                        val moveItemEnable = moveItem == ITEM_MOVE.MOVING_ITEM_ENABLED
+                        adapter.selectItem(view, row, column, moveItemEnable)
+                    }
                 }
 
             } else if (cellPointName == CELL_POINT_NAME.DOCK) {
                 // 移動前のデータをリストから消す
-                Global.dockItemList.removeHomeItem(0, 0, prevColumn)
+                Global.dockItemData.removeHomeItem(0, 0, prevColumn)
 
-                val moveItem = Global.dockItemList.addItem(0, 0, column, item)
-                if (moveItem == DataManagement.ITEM_MOVE.MOVE_NG) {
+                val moveItem = Global.dockItemData.addItem(0, 0, column, item)
+                if (moveItem == ITEM_MOVE.MOVE_NG) {
                     item.row = 0
                     item.column = prevColumn
-                    Global.dockItemList.setItem(0, 0, prevColumn, item)
+                    Global.dockItemData.setItem(0, 0, prevColumn, item)
                     adapter.selectItem(view, 0, column, false)
                 } else {
                     item.row = 0
                     item.column = column
-                    val moveItemEnable = moveItem == DataManagement.ITEM_MOVE.MOVING_ITEM_ENABLED
+                    val moveItemEnable = moveItem == ITEM_MOVE.MOVING_ITEM_ENABLED
                     adapter.selectItem(view, 0, column, moveItemEnable)
                 }
             }
@@ -702,22 +750,22 @@ class HomeFragment : Fragment(),
                 val prevColumn = item.column
 
                 // 移動前のデータをリストから消す
-                Global.dockItemList.removeHomeItem(0, 0, prevColumn)
+                Global.dockItemData.removeHomeItem(0, 0, prevColumn)
 
                 val column = (point.x / oneWidth).toInt()
                 val row = (point.y / oneHeight).toInt()
 
-                val moveItem = Global.homeItemList.addItem(gridPage, row, column, item)
+                val moveItem = Global.homeItemData.addItem(gridPage, row, column, item)
 
-                if (moveItem == DataManagement.ITEM_MOVE.MOVE_NG) {
+                if (moveItem == ITEM_MOVE.MOVE_NG) {
                     item.row = 0
                     item.column = prevColumn
-                    Global.dockItemList.setItem(0, 0, prevColumn, item)
+                    Global.dockItemData.setItem(0, 0, prevColumn, item)
                     dockAdapter.selectItem(view, 0, column, false)
                 } else {
                     item.row = row
                     item.column = column
-                    val moveItemEnable = moveItem == DataManagement.ITEM_MOVE.MOVING_ITEM_ENABLED
+                    val moveItemEnable = moveItem == ITEM_MOVE.MOVING_ITEM_ENABLED
                     adapter.selectItem(view, row, column, moveItemEnable)
                 }
 
@@ -729,19 +777,19 @@ class HomeFragment : Fragment(),
                 val row = 0
 
                 // 移動前のDesktopのデータをリストから消す
-                Global.homeItemList.removeHomeItem(gridPage, prevRow, prevColumn)
+                Global.homeItemData.removeHomeItem(gridPage, prevRow, prevColumn)
 
-                val moveItem = Global.dockItemList.addItem(0, row, column, item)
+                val moveItem = Global.dockItemData.addItem(0, row, column, item)
 
-                if (moveItem == DataManagement.ITEM_MOVE.MOVE_NG) {
+                if (moveItem == ITEM_MOVE.MOVE_NG) {
                     item.row = prevRow
                     item.column = prevColumn
-                    Global.homeItemList.setItem(gridPage, prevRow, prevColumn, item)
+                    Global.homeItemData.setItem(gridPage, prevRow, prevColumn, item)
                     this.desktopAdapter.selectItem(view, prevRow, prevColumn, false)
                 } else {
                     item.row = 0
                     item.column = column
-                    val moveItemEnable = moveItem == DataManagement.ITEM_MOVE.MOVING_ITEM_ENABLED
+                    val moveItemEnable = moveItem == ITEM_MOVE.MOVING_ITEM_ENABLED
                     adapter.selectItem(view, 0, column, moveItemEnable)
                 }
             }
@@ -811,9 +859,9 @@ class HomeFragment : Fragment(),
         val row = (point.y / oneHeight).toInt()
 
         val item = if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-            Global.homeItemList.getItem(gridPage, row, column)
+            Global.homeItemData.getItem(gridPage, row, column)
         } else if (cellPointName == CELL_POINT_NAME.DOCK) {
-            Global.dockItemList.getItem(0, 0, column)
+            Global.dockItemData.getItem(0, 0, column)
         } else {
             null
         }
@@ -821,7 +869,7 @@ class HomeFragment : Fragment(),
         if (item == null || item.widgetId != -1) {
             // 何もしない
         } else if (item.toolId != -1) {
-            onClickOpenApps()
+            openToolAction(item)
         } else {
             Global.launch(requireContext(), item, null)
         }
@@ -836,7 +884,7 @@ class HomeFragment : Fragment(),
 
         if (cellPointName == CELL_POINT_NAME.DESKTOP) {
             val gridPoint = desktopAdapter.getGridPoint(point)
-            val homeItem = Global.homeItemList.getItem(gridPage, gridPoint.row, gridPoint.column)
+            val homeItem = Global.homeItemData.getItem(gridPage, gridPoint.row, gridPoint.column)
             android.util.Log.i(TAG,"homeItem is null = " + (homeItem == null))
             if (homeItem == null) {
                 openMenuDialog()
@@ -846,7 +894,7 @@ class HomeFragment : Fragment(),
             setDragAndDropData(desktopAdapter, cellPointName, point)
         } else if (cellPointName == CELL_POINT_NAME.DOCK) {
             val gridPoint = dockAdapter.getGridPoint(point)
-            val homeItem = Global.dockItemList.getItem(0, 0, gridPoint.column)
+            val homeItem = Global.dockItemData.getItem(0, 0, gridPoint.column)
             android.util.Log.i(TAG,"homeItem is null = " + (homeItem == null))
             if (homeItem == null) {
                 openMenuDialog()
@@ -932,12 +980,11 @@ class HomeFragment : Fragment(),
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     private var openIconMenuEnable = false
-    private fun openIconMenu(item: HomeItem, positionX: Float, positionY: Float) {
+    private fun openIconMenu(cellPointName: CELL_POINT_NAME, item: HomeItem, positionX: Float, positionY: Float) {
         openIconMenuEnable = true
+
         val width = 600
         val height = 120.dpToPx(requireContext())
-
-        val view = createMenuView(requireContext(), width)
 
         val gridPoint = desktopAdapter.getGridPoint(DragAndDropView.DimensionPoint(positionX, positionY))
 
@@ -961,42 +1008,41 @@ class HomeFragment : Fragment(),
             startY = (oneHeight * (gridPoint.row + 1)).toFloat() + 10
         }
 
-        view.translationX = startX.toFloat()
-        view.translationY = startY.toFloat()
+        // 位置計算
 
-        val deleteButton = view.findViewById(R.id.button_delete) as LinearLayout
-        deleteButton?.setOnClickListener {
+        val appMenuFloatDialog = AppMenuFloatDialog(requireContext(),
+            callbackDelete = {
+                if(item.widgetId != -1) {
 
-            if(item.widgetId != -1) {
+                    val widgetId = item.widgetId
+                    removeWidget(widgetId)
+                }
 
-                val widgetId = item.widgetId
-                removeWidget(widgetId)
+                if (cellPointName == CELL_POINT_NAME.DESKTOP) {
+                    Global.homeItemData.removeHomeItem(gridPage, item.row, item.column)
+                    desktopAdapter.removePageItem(gridPage, item.row, item.column)
+                } else if (cellPointName == CELL_POINT_NAME.DOCK) {
+                    Global.dockItemData.removeHomeItem(0, item.row, item.column)
+                    dockAdapter.removePageItem(0, item.row, item.column)
+                }
+
+                if (item.toolId == 2) {
+                    Global.folderManager.removeAllItem(item.folderId)
+                }
+
+                pref.setAppsList()
+            },
+            callbackInfo = {
+                if(item.widgetId == -1) {
+                    onClickAppSetting(item)
+                }
+            },
+            callbackEdit = {
+
             }
+        )
 
-            Global.homeItemList.removeHomeItem(gridPage, item.row, item.column)
-            desktopAdapter.removePageItem(gridPage, item.row, item.column)
-            pref.setAppsList()
-
-            closeIconMenu()
-        }
-
-        val infoButton = view.findViewById(R.id.button_info) as LinearLayout
-        infoButton?.setOnClickListener {
-            if(item.widgetId == -1) {
-                onClickAppSetting(item)
-            }
-            closeIconMenu()
-        }
-
-        val editButton = view.findViewById(R.id.button_edit) as LinearLayout
-        editButton?.setOnClickListener {
-            closeIconMenu()
-        }
-
-        overlayMenuView?.let {
-            it.visibility = View.VISIBLE
-            it.addView(view)
-        }
+        appMenuFloatDialog.open(overlayMenuView, startX.toFloat(), startY)
     }
 
     private fun closeIconMenu() {
@@ -1014,26 +1060,16 @@ class HomeFragment : Fragment(),
     ///////////////////////////////////////////////////////////////////////////////////////////////
     fun openToolDialog() {
         android.util.Log.i(TAG,"openToolDialog")
-        val icon = ResourcesCompat.getDrawable(resources, net.mikemobile.mikelauncher.R.drawable.icon_drawer_menu, null)
+        val floatDdialog = ToolItemListFloatDialog(requireContext()) {
 
-        val homeItem = HomeItem(
-            -1,
-            "",
-            "",
-            1,
-            icon,
-            "",
-            "",
-            ""
-        )
+            addTool(it)
+        }
 
-        homeItem.toolId = 1
-
-        addTool(homeItem)
+        floatDdialog.open(overlayMenuView)
     }
 
-    fun addTool(homeItem: HomeItem) {
-        Global.homeItemList.addItem(gridPage, homeItem)
+    private fun addTool(homeItem: HomeItem) {
+        Global.homeItemData.addItem(gridPage, homeItem)
         pref.setAppsList()
 
         val child = createItemView(requireContext(), homeItem)
@@ -1041,6 +1077,108 @@ class HomeFragment : Fragment(),
         desktopAdapter.addGrid(child, homeItem)
     }
 
+    private fun openToolAction(homeItem: HomeItem) {
+        if (homeItem.toolId == 1) {
+            onClickOpenApps()
+        } else if (homeItem.toolId == 2) {
+            openFolderInAppData(homeItem)
+        }
+    }
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * フォルダーへアイテムの追加
+     */
+    private fun setFolderInApp(folder: HomeItem, inItem: HomeItem) {
+        // データを追加する
+        val list = Global.folderManager.addItem(folder.folderId, inItem)
+
+        updateFolderApp(folder)
+
+    }
+
+    private fun updateFolderApp(folder: HomeItem) {
+        val list = Global.folderManager.getList(folder.folderId)
+        val folderView = createToolFolderView(requireContext(), folder, list)
+
+        desktopAdapter.selectItem(folderView, folder.row, folder.column, false)
+    }
+
+    var folderDialog: FolderFloatDialog? = null
+    private fun openFolderInAppData(folder: HomeItem) {
+
+        val list = Global.folderManager.getList(folder.folderId)
+        folderDialog = FolderFloatDialog(requireContext(), list, {
+            Global.launch(requireContext(), it, null)
+            folderDialog = null
+        }) {
+            openFolderToAppMenu(folder, it)
+        }
+        folderDialog?.open(overlayMenuView)
+
+    }
+
+    private fun openFolderToAppMenu(folder: HomeItem, item: HomeItem) {
+
+        openIconMenuEnable = true
+
+        val width = 600
+        val height = 120.dpToPx(requireContext())
+
+        val gridPoint = GridPoint(Global.ROW_COUNT / 2, Global.COLUMN_COUNT / 2)
+
+        val displaySize = viewPager!!.getSize()
+
+        val oneWidth = displaySize.width / Global.COLUMN_COUNT
+        val oneHeight = displaySize.height / Global.ROW_COUNT
+
+        var startX = oneWidth / 2 + (oneWidth * gridPoint.column)
+        var startY = (oneHeight * gridPoint.row) - height
+
+        startX -= width / 2
+
+        if (gridPoint.column == 0) {
+            startX = 10
+        } else if (gridPoint.column == Global.COLUMN_COUNT - 1) {
+            startX = displaySize.width - width - 10
+        }
+
+        if (gridPoint.row < 2) {
+            startY = (oneHeight * (gridPoint.row + 1)).toFloat() + 10
+        }
+
+        val appMenuFloatDialog = AppMenuFloatDialog(requireContext(),
+            callbackDelete = {
+                folderDialog?.close()
+                folderDialog = null
+
+                Global.folderManager.removeItem(folder.folderId, item)
+                pref.setAppsList()
+
+                updateFolderApp(folder)
+            },
+            callbackInfo = {
+                folderDialog?.close()
+                folderDialog = null
+
+                if(item.widgetId == -1) {
+                    onClickAppSetting(item)
+                }
+            },
+            callbackEdit = {
+                folderDialog?.close()
+                folderDialog = null
+
+
+            }
+        )
+
+        appMenuFloatDialog.open(overlayMenuView, startX.toFloat(), startY)
+    }
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////
 
     private fun openMenuDialog() {
         android.util.Log.i(TAG,"openMenuDialog")

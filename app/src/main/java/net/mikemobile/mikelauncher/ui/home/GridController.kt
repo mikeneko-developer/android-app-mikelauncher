@@ -74,9 +74,9 @@ class GridController(private val context: Context, private val position: Int, pr
                 }
                 columnLayout.setBackgroundResource(R.drawable.grid_frame)
 
-                columnLayout.setOnClickListener {
-                    listener?.onClickGrid(rowId, columnId)
-                }
+//                columnLayout.setOnClickListener {
+//                    listener?.onClickGrid(rowId, columnId)
+//                }
 
 //                columnLayout.setOnLongClickListener {
 //                    val parent = it as ViewGroup

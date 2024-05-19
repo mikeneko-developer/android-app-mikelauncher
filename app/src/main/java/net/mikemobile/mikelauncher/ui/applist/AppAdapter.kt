@@ -26,7 +26,7 @@ class AppAdapter(
         holder.label.text = info.label
         holder.packageName.text = info.componentName.packageName
 
-        if (Global.homeItemList.checkHomeInApps( info.componentName.packageName, info.componentName.className)) {
+        if (Global.homeItemData.checkHomeInApps( info.componentName.packageName, info.componentName.className)) {
             holder.itemView.setBackgroundResource(R.drawable.select_app)
         } else {
             holder.itemView.setBackgroundDrawable(null)

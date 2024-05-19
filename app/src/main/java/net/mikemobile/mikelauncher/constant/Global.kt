@@ -7,19 +7,23 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.view.View
+import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.MutableLiveData
 import net.mikemobile.mikelauncher.data.HomeItem
 import net.mikemobile.mikelauncher.ui.applist.AppInfo
+import java.util.UUID
+
 
 class Global {
 
     companion object {
 
         const val COLUMN_COUNT = 5
-        const val ROW_COUNT = 7
+        const val ROW_COUNT = 8
 
-        val homeItemList = DataManagement(CELL_POINT_NAME.DESKTOP)
-        val dockItemList = DataManagement(CELL_POINT_NAME.DOCK)
+        val homeItemData = DataManagement(CELL_POINT_NAME.DESKTOP)
+        val dockItemData = DataManagement(CELL_POINT_NAME.DOCK)
+        val folderManager = FolderManagement()
 
         var selectItem: MutableLiveData<HomeItem> = MutableLiveData<HomeItem>(null)
 
@@ -69,6 +73,28 @@ class Global {
                 context.startActivity(intent, options)
             } catch (e: ActivityNotFoundException) {
             }
+        }
+
+
+
+        fun getToolIcon(context: Context, toolId: Int): Drawable? {
+            val iconResource = if (toolId == 1) {
+                net.mikemobile.mikelauncher.R.drawable.icon_drawer_menu
+            } else if (toolId == 2) {
+                net.mikemobile.mikelauncher.R.drawable.folder
+            } else {
+                return null
+            }
+
+            return ResourcesCompat.getDrawable(
+                context.resources,
+                iconResource,
+                null)
+        }
+        fun generateId(): Int {
+            val uuid = UUID.randomUUID()
+            return uuid.hashCode() // ハッシュコードをIDとして使用
+
         }
     }
 }
