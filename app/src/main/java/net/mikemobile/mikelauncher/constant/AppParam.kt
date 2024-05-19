@@ -1,0 +1,20 @@
+package net.mikemobile.mikelauncher.constant
+
+
+enum class HomeItemType(val value: Int) {
+    APP(1),
+    WIDGET(2),
+    TOOL(3),
+}
+
+enum class CELL_POINT_NAME(val value: Int) {
+    NONE(0),
+    DESKTOP(1),
+    DOT(2),
+    DOCK(3)
+}
+
+
+data class CellSize(var width: Float, var height: Float)
+data class DimenPoint(val x: Float, val y: Float)
+data class GridPoint(var row: Int, var column: Int)

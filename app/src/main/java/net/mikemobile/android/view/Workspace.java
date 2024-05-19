@@ -608,9 +608,9 @@ public class Workspace extends ViewGroup implements DropTarget, DragSource, Drag
     public boolean requestChildRectangleOnScreen(View child, Rect rectangle, boolean immediate) {
         int screen = indexOfChild(child);
         if (screen != mCurrentScreen || !mScroller.isFinished()) {
-            if (!mLauncher.isWorkspaceLocked()) {
-                snapToScreen(screen);
-            }
+//            if (!mLauncher.isWorkspaceLocked()) {
+//                snapToScreen(screen);
+//            }
             return true;
         }
         return false;

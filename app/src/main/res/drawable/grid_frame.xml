@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="false">
+        <layer-list >
+            <item android:left="1dp"
+                android:top="1dp"
+                android:right="1dp"
+                android:bottom="1dp"
+                android:color="#FFFFFF">
+                <shape>
+
+                    <!-- 背景色 -->
+                    <solid android:color="#00FFFFFF" />
+
+                    <!-- 角丸 -->
+                    <corners android:radius="10dp" />
+
+                    <!-- 枠線 -->
+                    <stroke
+                        android:width="0dp"
+                        android:color="#5EEDFF" />
+
+                    <!-- <padding
+                        android:top="1dp"
+                        android:left="1dp"
+                        android:right="1dp"
+                        android:bottom="1dp" />-->
+
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>

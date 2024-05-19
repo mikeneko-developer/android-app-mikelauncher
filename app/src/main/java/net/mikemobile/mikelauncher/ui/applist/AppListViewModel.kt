@@ -25,7 +25,9 @@ class AppListViewModel : ViewModel() {
                 AppInfo(
                     it.loadIcon(pm) ?: getDefaultIcon(context),
                     it.loadLabel(pm).toString(),
-                    ComponentName(it.packageName, it.name)
+                    ComponentName(it.packageName, it.name),
+                    it.packageName,
+                    it.name
                 )
             }
             .sortedBy { it.label }

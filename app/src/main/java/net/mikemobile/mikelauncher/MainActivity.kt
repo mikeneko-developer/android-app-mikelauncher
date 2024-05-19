@@ -1,42 +1,27 @@
 package net.mikemobile.mikelauncher
 
-import android.app.Activity
-import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
-import androidx.fragment.app.Fragment
-import net.mikemobile.mikelauncher.ui.applist.AppListFragment
-import net.mikemobile.mikelauncher.ui.main.MainFragment
+
 import android.appwidget.AppWidgetHost
-import android.appwidget.AppWidgetHostView
-
-import android.appwidget.AppWidgetManager
-
-import android.graphics.drawable.Drawable
-
-import android.appwidget.AppWidgetProviderInfo
 import android.content.ActivityNotFoundException
-
-import androidx.core.app.ActivityCompat.startActivityForResult
-
 import android.content.Intent
-import android.os.Build
+import android.os.Bundle
 import android.util.Log
+import android.view.KeyEvent
 import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
 import android.widget.FrameLayout
-import android.widget.LinearLayout
 import android.widget.Toast
-import net.mikemobile.android.view.CellLayout
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
 import net.mikemobile.android.view.DragLayer
 import net.mikemobile.android.view.Folder
-import net.mikemobile.android.view.Workspace
-import java.lang.NullPointerException
+import net.mikemobile.mikelauncher.data.AppPreference
+import net.mikemobile.mikelauncher.ui.applist.AppListFragment
+import net.mikemobile.mikelauncher.ui.home.HomeFragment
+import net.mikemobile.mikelauncher.ui.test.TestWidgetFragment
 
 
 class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnLongClickListener {
 
-    val APPWIDGET_HOST_ID = 1024
     var dragLayer: DragLayer? = null
     var mWorkspace: FrameLayout? = null
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,34 +32,30 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnLongClick
             //setFragment(MainFragment.newInstance())
             //setFragment(AppListFragment.newInstance())
         }
+//
+//        for (id in mAppWidgetHost!!.appWidgetIds) {
+//            Log.i("TESTTEST", "onCreate  id:" + id)
+//            mAppWidgetHost!!.deleteAppWidgetId(id) //…(8)
+//        }
 
-        dragLayer = findViewById(R.id.dragLayer) as DragLayer
+
+        val pref = AppPreference(this)
+        pref.getAppsList()
 
 
-        mWorkspace = findViewById(R.id.workspace) as FrameLayout
-
-
-        val button = findViewById(R.id.button) as Button
-        button.setOnClickListener {
-            openWidget()
-        }
-        val button2 = findViewById(R.id.button2) as Button
-        button2.setOnClickListener {
-            removeWidget()
-        }
-        val button3 = findViewById(R.id.button3) as Button
-        button3.setOnClickListener {
-            updateWidget()
+        if (false) {// widget設置テスト用
+            setFragment(TestWidgetFragment.newInstance())
         }
 
-
-        mAppWidgetHost = AppWidgetHost(applicationContext, XXXX)    //…(1)
-        mAppWidgetHost!!.startListening()
-
-        for (id in mAppWidgetHost!!.appWidgetIds) {
-            Log.i("TESTTEST", "onCreate  id:" + id)
-            mAppWidgetHost!!.deleteAppWidgetId(id) //…(8)
+        if (true) {// ホーム
+            setFragment2(HomeFragment.newInstance())
         }
+
+//        dragLayer = findViewById(R.id.dragLayer_main) as DragLayer
+//        mWorkspace = findViewById(R.id.workspace_main) as FrameLayout
+
+
+
 
     }
 
@@ -96,137 +77,51 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnLongClick
     }
 
     private fun setFragment(fragment: Fragment) {
-        supportFragmentManager.beginTransaction().replace(R.id.container,
+        supportFragmentManager.beginTransaction().replace(R.id.container_main,
             fragment
         ).commitNow()
     }
 
-    /**
-    override fun finish() {
+    private fun setFragment2(fragment: Fragment) {
+        supportFragmentManager.beginTransaction().replace(R.id.container_main2,
+            fragment
+        ).commitNow()
     }
-    */
 
-    val XXXX = 111111
+    private fun removeFragment(fragment: Fragment) {
+        supportFragmentManager.beginTransaction().remove(fragment).commitNow()
+    }
 
-    val REQUEST_CODE_ADD_APPWIDGET = 1
-    val REQUEST_CODE_ADD_APPWIDGET_2 = 2
+    fun openApplicationList() {
+        setFragment(AppListFragment.newInstance())
+    }
 
-    var widgetWidth = 0
-    var widgetHeight = 0
+    fun closeApplicationList() {
+        removeFragment(AppListFragment.newInstance())
+    }
+
+
+    override fun finish() {
+
+    }
+
+    override fun onBackPressed() {
+        // 何もしない
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        return if (keyCode == KeyEvent.KEYCODE_BACK) {
+            // 何もしない
+            true // 戻る動作をキャンセル
+        } else super.onKeyDown(keyCode, event)
+    }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        when (resultCode) {
-            RESULT_OK -> when (requestCode) {
-                REQUEST_CODE_ADD_APPWIDGET -> {
-                    val appWidgetId = data!!.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
-                    val appWidgetProviderInfo =
-                        AppWidgetManager.getInstance(applicationContext).getAppWidgetInfo(appWidgetId) //…(2)
-
-                    //…(3)
-                    if (appWidgetProviderInfo.configure != null) {
-                        val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE)
-                            .setComponent(appWidgetProviderInfo.configure)
-                            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-                        startActivityForResult(intent, REQUEST_CODE_ADD_APPWIDGET_2)
-
-                        //…(4)
-                    } else {
-                        onActivityResult(REQUEST_CODE_ADD_APPWIDGET_2, RESULT_OK, data)
-                    }
-                }
-                REQUEST_CODE_ADD_APPWIDGET_2 -> {
-
-                    //…(6)
-                    val appWidgetId2 = data!!.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
-                    val appWidgetProviderInfo2 =
-                        AppWidgetManager.getInstance(applicationContext).getAppWidgetInfo(appWidgetId2)
-                    val widgetLabel = appWidgetProviderInfo2.label
-                    val widgetIcon = packageManager.getDrawable(
-                        appWidgetProviderInfo2.provider.packageName,
-                        appWidgetProviderInfo2.icon,
-                        null
-                    )
-                    widgetWidth = appWidgetProviderInfo2.minWidth
-                    widgetHeight = appWidgetProviderInfo2.minHeight
-
-
-                    appWidgetId = appWidgetId2
-
-                    var hostView = mAppWidgetHost!!.createView(applicationContext, appWidgetId2, appWidgetProviderInfo2)
-
-                    //hostView.setMinimumHeight(appWidgetProviderInfo2.minHeight)
-                    if (Build.VERSION.SDK_INT > 15) {
-                        //hostView.updateAppWidgetSize(null,
-                        //    widgetWidth, appWidgetProviderInfo2.minHeight,
-                        //    widgetHeight, appWidgetProviderInfo2.minHeight)
-                    }
-                    hostView.setAppWidget(appWidgetId2, appWidgetProviderInfo2)
-                    addWodiget(hostView, true, 0, 0, 1, 1, widgetWidth, widgetHeight)
-
-                }
-            }
-            RESULT_CANCELED -> when (requestCode) {
-                REQUEST_CODE_ADD_APPWIDGET, REQUEST_CODE_ADD_APPWIDGET_2 -> if (data != null) {
-                    val appWidgetId = data.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
-                    val appWidgetHost = AppWidgetHost(this, XXXX)
-                    if (appWidgetId != -1) appWidgetHost.deleteAppWidgetId(appWidgetId) //…(8)
-                }
-            }
-        }
-    }
-
-    fun openWidget() {
-
-        var appWidgetId = mAppWidgetHost!!.allocateAppWidgetId()    //…(2)
-        var appWidgetProviderInfoList = ArrayList<AppWidgetProviderInfo>()
-
-        var bundleList = ArrayList<Bundle>()
-        var intent = Intent(AppWidgetManager.ACTION_APPWIDGET_PICK)
-            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-            .putParcelableArrayListExtra(AppWidgetManager.EXTRA_CUSTOM_INFO, appWidgetProviderInfoList)
-            .putParcelableArrayListExtra(AppWidgetManager.EXTRA_CUSTOM_EXTRAS, bundleList);
-
-        startActivityForResult(intent, REQUEST_CODE_ADD_APPWIDGET)    //…(3)
-    }
-
-    var appWidgetId: Int = -1
-    var widgetView: AppWidgetHostView? = null
-    fun addWodiget(child: AppWidgetHostView, insert: Boolean, x: Int, y: Int, spanX: Int, spanY: Int, width: Int, height: Int) {
-        Log.i("TESTTEST", "addWodiget  appWidgetId:" + appWidgetId)
-        widgetView = child
-        var lp: CellLayout.LayoutParams
-        if (child.layoutParams == null) {
-            lp = CellLayout.LayoutParams(x, y, spanX, spanY)
-        } else {
-            lp = child.layoutParams as CellLayout.LayoutParams
-            lp.cellX = x
-            lp.cellY = y
-            lp.cellHSpan = spanX
-            lp.cellVSpan = spanY
-        }
-        child.setLayoutParams(lp)
-
-        mWorkspace!!.addView(child, lp)
-
-        mWorkspace!!.layoutParams.width = width * 2
-        mWorkspace!!.layoutParams.height = height * 2
-
-        //mWorkspace!!.addView(child, if (insert) 0 else -1, lp)
-        child.setOnLongClickListener(this)
-    }
-
-    fun updateWidget() {
 
     }
 
-    fun removeWidget() {
-        Log.i("TESTTEST", "removeWidget  appWidgetId:" + appWidgetId)
 
-        if (appWidgetId != -1) mAppWidgetHost!!.deleteAppWidgetId(appWidgetId) //…(8)
-
-        mWorkspace!!.removeAllViews()
-    }
 
     companion object {
         const val APPWIDGET_HOST_ID = 1024

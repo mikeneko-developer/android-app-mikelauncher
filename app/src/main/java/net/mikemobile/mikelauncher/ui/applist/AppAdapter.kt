@@ -8,6 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import net.mikemobile.mikelauncher.R
+import net.mikemobile.mikelauncher.constant.Global
 
 class AppAdapter(
     private val inflater: LayoutInflater,
@@ -24,6 +25,12 @@ class AppAdapter(
         holder.icon.setImageDrawable(info.icon)
         holder.label.text = info.label
         holder.packageName.text = info.componentName.packageName
+
+        if (Global.homeItemList.checkHomeInApps( info.componentName.packageName, info.componentName.className)) {
+            holder.itemView.setBackgroundResource(R.drawable.select_app)
+        } else {
+            holder.itemView.setBackgroundDrawable(null)
+        }
     }
 
     class AppViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

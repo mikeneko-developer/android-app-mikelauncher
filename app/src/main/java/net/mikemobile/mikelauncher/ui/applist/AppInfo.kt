@@ -11,7 +11,9 @@ import android.view.View
 data class AppInfo(
     val icon: Drawable,
     val label: String,
-    val componentName: ComponentName
+    val componentName: ComponentName,
+    val packageName: String,
+    val name: String,
 ) {
     fun launch(context: Context, view: View? = null) {
         try {

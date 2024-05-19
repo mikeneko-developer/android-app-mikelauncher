@@ -7,14 +7,14 @@
     android:theme="@style/Theme.MikeLauncher">
 
     <Button
-        android:id="@+id/button"
+        android:id="@+id/add_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="right"
         android:text="追加" />
 
     <Button
-        android:id="@+id/button2"
+        android:id="@+id/del_button2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="right"
@@ -22,20 +22,21 @@
         android:text="削除" />
 
     <Button
-        android:id="@+id/button3"
+        android:id="@+id/update_button3"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="right"
         android:layout_marginTop="120dp"
         android:text="更新" />
 
-    <FrameLayout
+    <LinearLayout
         android:id="@+id/container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:context=".MainActivity" >
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        tools:context=".MainActivity">
 
-    </FrameLayout>
+    </LinearLayout>
 
     <net.mikemobile.android.view.DragLayer
         android:id="@+id/dragLayer"
@@ -45,12 +46,14 @@
 
         <!-- The workspace contains 3 screens of cells -->
     </net.mikemobile.android.view.DragLayer>
-    <FrameLayout
+
+    <LinearLayout
         android:id="@+id/workspace"
         android:layout_width="200dp"
-        android:layout_height="200dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
         android:theme="@style/Theme.MikeLauncher">
 
-    </FrameLayout>
+    </LinearLayout>
 
 </FrameLayout>

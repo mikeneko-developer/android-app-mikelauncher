@@ -86,11 +86,11 @@ public class Folder extends LinearLayout implements DragSource, OnItemLongClickL
     }
 
     public void onClick(View v) {
-        mLauncher.closeFolder(this);
+        //mLauncher.closeFolder(this);
     }
 
     public boolean onLongClick(View v) {
-        mLauncher.closeFolder(this);
+        //mLauncher.closeFolder(this);
         //mLauncher.showRenameDialog(mInfo);
         return true;
     }
@@ -106,7 +106,7 @@ public class Folder extends LinearLayout implements DragSource, OnItemLongClickL
         }
 
         mDragger.startDrag(view, this, app, DragController.DRAG_ACTION_COPY);
-        mLauncher.closeFolder(this);
+        //mLauncher.closeFolder(this);
         mDragItem = app;
 
         return true;
