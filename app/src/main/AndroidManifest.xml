@@ -8,6 +8,8 @@
         tools:ignore="QueryAllPackagesPermission"
         />
 
+    <uses-permission android:name="android.permission.VIBRATE"/>
+
     <permission
         android:name="com.android.launcher.permission.INSTALL_SHORTCUT"
         android:permissionGroup="android.permission-group.SYSTEM_TOOLS"

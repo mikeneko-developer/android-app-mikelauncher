@@ -17,6 +17,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+import android.view.ViewParent
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
@@ -25,7 +26,7 @@ import android.widget.TextView
 import net.mikemobile.android.view.CellLayout
 import net.mikemobile.mikelauncher.R
 import net.mikemobile.mikelauncher.data.HomeItem
-
+import net.mikemobile.mikelauncher.ui.custom.DragAndDropView
 
 
 @SuppressLint("InflateParams")
@@ -345,4 +346,34 @@ fun hideKeyboard(context: Context) {
     currentFocus?.let {
         inputMethodManager.hideSoftInputFromWindow(it.windowToken, 0)
     }
+}
+
+fun checkPosition(view: View): DragAndDropView.DimensionPoint {
+    return checkPosition(view, DragAndDropView.DimensionPoint(view.x, view.y))
+}
+fun checkPosition(view: View, point: DragAndDropView.DimensionPoint): DragAndDropView.DimensionPoint {
+
+    android.util.Log.i("checkPosition","checkPosition >>>>")
+    android.util.Log.i("checkPosition","prev point x:"+point.x + " / y" + point.y)
+    android.util.Log.i("checkPosition","     view  x:"+view.x + " / y" + view.y)
+
+    point.x += view.x
+    point.y += view.y
+
+    android.util.Log.i("checkPosition","next point x:"+point.x + " / y" + point.y)
+
+
+    if (view.parent == null) {
+        return point
+    }
+
+    try {
+        val parent = view.parent as ViewGroup
+
+        return checkPosition(parent, point)
+    } catch(e: Exception) {
+        android.util.Log.e("ERROR","" + e.toString())
+        return point
+    }
+
 }

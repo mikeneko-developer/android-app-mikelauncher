@@ -56,6 +56,15 @@ class DragAndDropView: ConstraintLayout {
     var enableDisplay = false
 
     var onTouchEventDisable = false
+
+
+    private var onDownTime = -1L
+
+    // タッチイベント判定用
+    private var onDownEnabled = false
+    private var onLongTouchEnabled = false
+    private var onTouchMoveEnable = false
+
     fun setDisableTouchEvent() {
         onTouchEventDisable = true
     }
@@ -227,7 +236,6 @@ class DragAndDropView: ConstraintLayout {
         }
     }
 
-    private var onDownTime = -1L
     override fun onTouchEvent(motionEvent: MotionEvent): Boolean {
 
         if (onTouchEventDisable) {
@@ -244,24 +252,43 @@ class DragAndDropView: ConstraintLayout {
         when (motionEvent.action) {
             MotionEvent.ACTION_DOWN -> {
                 android.util.Log.i(TAG,"ACTION_DOWN")
+                onDownEnabled = true
+                onTouchMoveEnable = false
+
                 startTimer()
                 onDownTime = System.currentTimeMillis()
                 listener?.onTouchDown(DimensionPoint(motionEvent.x, motionEvent.y))
             }
             MotionEvent.ACTION_MOVE -> {
 
-                // 移動を始めたのでタイマーはキャンセルする
-                cancelTimer()
 
-                if (data != null && checkMinMove()) {
+                if (onDownEnabled && checkMinMove()) {
+                    android.util.Log.d("MINMOVETEST","checkMinMove over")
+                    // 移動を始めたのでタイマーはキャンセルする
+                    cancelTimer()
+                    onDownEnabled = false
+
+                } else if (onDownEnabled){
+                    android.util.Log.i("MINMOVETEST","TEST ACTION_MOVE")
+
+                } else {
+
+                }
+
+                if (onTouchMoveEnable || data != null && checkMinMove()) {
+                    onTouchMoveEnable = true
                     android.util.Log.i(TAG,"ACTION_MOVE")
                     listener?.onTouchMove(DimensionPoint(motionEvent.x, motionEvent.y))
+                    invalidate()
                 }
-                invalidate()
 
             }
             MotionEvent.ACTION_UP -> {
                 android.util.Log.i(TAG,"ACTION_UP")
+                onDownEnabled = false
+                onLongTouchEnabled = false
+                onTouchMoveEnable = false
+
                 // 手を離したのでタイマーはキャンセルする
                 cancelTimer()
 
@@ -279,6 +306,9 @@ class DragAndDropView: ConstraintLayout {
             }
             MotionEvent.ACTION_CANCEL -> {
                 android.util.Log.i(TAG,"ACTION_CANCEL")
+                onDownEnabled = false
+                onLongTouchEnabled = false
+                onTouchMoveEnable = false
 
                 // 違う場所を触り始めたのでタイマーを停止する
                 cancelTimer()
@@ -292,7 +322,18 @@ class DragAndDropView: ConstraintLayout {
             }
             return true
         }
+
+        if (motionEvent.action == MotionEvent.ACTION_DOWN) {
+
+        } else if (onDownEnabled) {
+            return true
+        } else if (onLongTouchEnabled) {
+            return true
+        }
+
+
         if (!clear && lowerDesktopView != null && cellPointName == CELL_POINT_NAME.DESKTOP) {
+            android.util.Log.d("MINMOVETEST","desktopに値を渡す")
             lowerDesktopView!!.dispatchTouchEvent(motionEvent)
         } else if (!clear && lowerDesktopView != null && cellPointName == CELL_POINT_NAME.DOT) {
             lowerDesktopView!!.dispatchTouchEvent(motionEvent)
@@ -312,7 +353,7 @@ class DragAndDropView: ConstraintLayout {
         invalidate()
     }
 
-    data class DimensionPoint(val x: Float, val y: Float)
+    data class DimensionPoint(var x: Float, var y: Float)
 
     var touchAction = MotionEvent.ACTION_CANCEL
     var downPosition: DimensionPoint? = null
@@ -353,8 +394,6 @@ class DragAndDropView: ConstraintLayout {
 
         val border = oneCellSize.width / 2f
         val borderHeight = oneCellSize.height / 3f
-
-        android.util.Log.i("TESTESTEST","movePosition.x" + movePosition!!.x)
 
         if (movePosition!!.x > border || movePosition!!.y > borderHeight
             || movePosition!!.x < -border || movePosition!!.y < -borderHeight) {
@@ -459,10 +498,11 @@ class DragAndDropView: ConstraintLayout {
             timer = null
         }
 
-        timer = Timer(800) {
+        timer = Timer(600) {
             if (longClickCheck) {
                 android.util.Log.i(TAG,"LONG_TOUCH_DOWN downPosition not null = " + (downPosition == null))
                 downPosition?.let {
+                    onLongTouchEnabled = true
                     listener?.onLongTouchDown(cellPointName, it)
                 }
             } else {

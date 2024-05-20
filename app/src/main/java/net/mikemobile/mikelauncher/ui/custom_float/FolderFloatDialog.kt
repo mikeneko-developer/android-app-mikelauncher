@@ -11,6 +11,8 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import net.mikemobile.mikelauncher.R
 import net.mikemobile.mikelauncher.data.HomeItem
+import net.mikemobile.mikelauncher.ui.custom.DragAndDropView
+import net.mikemobile.mikelauncher.ui.home.checkPosition
 import net.mikemobile.mikelauncher.ui.home.createFolderInItemListView
 import net.mikemobile.mikelauncher.ui.home.displaySize
 import net.mikemobile.mikelauncher.ui.home.folder.FolderAdapter
@@ -21,7 +23,7 @@ class FolderFloatDialog(
     private val list: ArrayList<HomeItem>,
     private val callback: (HomeItem) -> Unit,
     private val callbackEditTitle: (HomeItem) -> Unit,
-    private val callbackLongClick: (HomeItem) -> Unit,
+    private val callbackLongClick: (View, DragAndDropView.DimensionPoint, HomeItem) -> Unit,
     close:() -> Unit) : BaseFloatingDialog(context, close) {
 
     override fun onCreate(context: Context): View? {
@@ -38,14 +40,18 @@ class FolderFloatDialog(
 
     override fun onCreateView(context: Context, view: View) {
 
+        val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerView)
+
         val adapter = FolderAdapter(context, list,{
             close()
             callback.invoke(it)
-        }) {
-            callbackLongClick.invoke(it)
+        }) { view, selectItem ->
+
+            var point = checkPosition(view)
+
+            callbackLongClick.invoke(view, point, selectItem)
         }
 
-        val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerView)
         recyclerView.setLayoutManager(GridLayoutManager(context, 4)) // 2列のグリッド
         recyclerView.adapter = adapter
 

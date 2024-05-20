@@ -15,7 +15,7 @@ class FolderAdapter(
     private val context: Context,
     var list: ArrayList<HomeItem>,
     private val callback: (HomeItem) -> Unit,
-    private val callbackLongClick: (HomeItem) -> Unit
+    private val callbackLongClick: (View,HomeItem) -> Unit
 ): RecyclerView.Adapter<FolderAdapter.ViewHolder>() {
 
     class ViewHolder(itemView: View): RecyclerView.ViewHolder(itemView)
@@ -40,7 +40,7 @@ class FolderAdapter(
             callback.invoke(list[position])
         }
         holder.itemView.setOnLongClickListener {
-            callbackLongClick.invoke(list[position])
+            callbackLongClick.invoke(icon, list[position])
             return@setOnLongClickListener true
         }
 

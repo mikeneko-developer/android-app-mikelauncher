@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
+import android.util.Size
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -30,6 +31,7 @@ import net.mikemobile.mikelauncher.constant.HomeItemType
 import net.mikemobile.mikelauncher.constant.ITEM_MOVE
 import net.mikemobile.mikelauncher.data.AppPreference
 import net.mikemobile.mikelauncher.data.HomeItem
+import net.mikemobile.mikelauncher.system.triggerVibration
 import net.mikemobile.mikelauncher.ui.custom.DragAndDropView
 import net.mikemobile.mikelauncher.ui.custom.OverlayMenuView
 import net.mikemobile.mikelauncher.ui.custom_float.AppMenuFloatDialog
@@ -853,6 +855,8 @@ class HomeFragment : Fragment(),
     override fun onLongTouchDown(cellPointName: CELL_POINT_NAME, point: DragAndDropView.DimensionPoint) {
         android.util.Log.i(TAG,"onLongTouchDown　" + cellPointName)
 
+        triggerVibration(requireContext())
+
         if (cellPointName == CELL_POINT_NAME.DESKTOP) {
             val gridPoint = desktopAdapter.getGridPoint(point)
             val homeItem = Global.homeItemData.getItem(gridPage, gridPoint.row, gridPoint.column)
@@ -1055,7 +1059,7 @@ class HomeFragment : Fragment(),
         }
 
         appMenuFloatDialog.setDialogSize(startX.toFloat(), startY)
-        openOverlayView(appMenuFloatDialog, false)
+        openOverlayView(appMenuFloatDialog, false, false)
     }
 
 
@@ -1139,8 +1143,9 @@ class HomeFragment : Fragment(),
                     pref.setAppsList()
                 }
             },
-            {
-                openFolderToAppMenu(folder, it)
+            {view, point, selectItem ->
+                val size = Size(view.width, view.height)
+                openFolderToAppMenu(folder, selectItem, size, point)
             }
         ) {
             closeOverlayView()
@@ -1150,31 +1155,22 @@ class HomeFragment : Fragment(),
 
     }
 
-    private fun openFolderToAppMenu(folder: HomeItem, item: HomeItem) {
+    private fun openFolderToAppMenu(folder: HomeItem, item: HomeItem, size: Size, point: DragAndDropView.DimensionPoint) {
 
         val width = 600
-        val height = 120.dpToPx(requireContext())
-
-        val gridPoint = GridPoint(folder.row, folder.column)
+        val height = 150.dpToPx(requireContext())
 
         val displaySize = viewPager!!.getSize()
 
-        val oneWidth = displaySize.width / Global.COLUMN_COUNT
-        val oneHeight = displaySize.height / Global.ROW_COUNT
-
-        var startX = oneWidth / 2 + (oneWidth * gridPoint.column)
-        var startY = (oneHeight * gridPoint.row) - height
+        var startX = point.x + (size.width/2)
+        var startY = point.y - height
 
         startX -= width / 2
 
-        if (gridPoint.column == 0) {
-            startX = 10
-        } else if (gridPoint.column == Global.COLUMN_COUNT - 1) {
-            startX = displaySize.width - width - 10
-        }
-
-        if (gridPoint.row < 2) {
-            startY = (oneHeight * (gridPoint.row + 1)).toFloat() + 10
+        if (startX < 10f) {
+            startX = 10f
+        } else if (displaySize.width < startX + width) {
+            startX = displaySize.width - width - 10f
         }
 
         val appMenuFloatDialog = AppMenuFloatDialog(requireContext(),
