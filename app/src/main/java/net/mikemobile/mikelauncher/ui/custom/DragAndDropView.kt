@@ -55,6 +55,14 @@ class DragAndDropView: ConstraintLayout {
 
     var enableDisplay = false
 
+    var onTouchEventDisable = false
+    fun setDisableTouchEvent() {
+        onTouchEventDisable = true
+    }
+    fun setEnableTouchEvent() {
+        onTouchEventDisable = false
+    }
+
     fun setSplitData(row: Int, column: Int) {
         this.row = row
         this.column = column
@@ -176,7 +184,9 @@ class DragAndDropView: ConstraintLayout {
             }
         }
 
-        if (dragAnimation) {
+        if (onTouchEventDisable) {
+
+        } else if (dragAnimation) {
             data?.let { image ->
 
                 if (cellPointName != CELL_POINT_NAME.DOT) {
@@ -219,6 +229,10 @@ class DragAndDropView: ConstraintLayout {
 
     private var onDownTime = -1L
     override fun onTouchEvent(motionEvent: MotionEvent): Boolean {
+
+        if (onTouchEventDisable) {
+            return super.onTouchEvent(motionEvent)
+        }
 
         // タッチ位置の取得と計算
         touchPoint(motionEvent)

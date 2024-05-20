@@ -33,10 +33,11 @@ import net.mikemobile.mikelauncher.data.HomeItem
 import net.mikemobile.mikelauncher.ui.custom.DragAndDropView
 import net.mikemobile.mikelauncher.ui.custom.OverlayMenuView
 import net.mikemobile.mikelauncher.ui.custom_float.AppMenuFloatDialog
-import net.mikemobile.mikelauncher.ui.custom_float.EditTitleDialog
+import net.mikemobile.mikelauncher.ui.custom_float.BaseFloatingDialog
 import net.mikemobile.mikelauncher.ui.custom_float.FolderFloatDialog
 import net.mikemobile.mikelauncher.ui.custom_float.ToolItemListFloatDialog
 import net.mikemobile.mikelauncher.ui.dialog.MenuDialog
+import net.mikemobile.mikelauncher.ui.dialog.TitleEditDialog
 
 
 class HomeFragment : Fragment(),
@@ -950,12 +951,24 @@ class HomeFragment : Fragment(),
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
+    private fun openOverlayView(dialog: BaseFloatingDialog, isTouchLimit: Boolean = true) {
+        if (isTouchLimit)dragAndDropView?.setDisableTouchEvent()
+
+        dialog.open(overlayMenuView)
+    }
+    private fun openOverlayView2(dialog: BaseFloatingDialog) {
+        dragAndDropView?.setDisableTouchEvent()
+
+        dialog.open(overlayMenuView2)
+    }
+
     private fun closeOverlayView() {
         openIconMenuEnable = false
         overlayMenuView?.let {
             it.removeAllViews()
             it.visibility = View.GONE
         }
+        dragAndDropView?.setEnableTouchEvent()
     }
 
     private fun closeOverLayView2() {
@@ -964,6 +977,7 @@ class HomeFragment : Fragment(),
             it.removeAllViews()
             it.visibility = View.GONE
         }
+        dragAndDropView?.setEnableTouchEvent()
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1031,7 +1045,8 @@ class HomeFragment : Fragment(),
             }
         )
 
-        appMenuFloatDialog.open(overlayMenuView, startX.toFloat(), startY)
+        openOverlayView(appMenuFloatDialog, false)
+        appMenuFloatDialog.setDialogSize(startX.toFloat(), startY)
     }
 
 
@@ -1047,7 +1062,7 @@ class HomeFragment : Fragment(),
             addTool(it)
         }
 
-        floatDdialog.open(overlayMenuView)
+        openOverlayView(floatDdialog)
     }
 
     private fun addTool(homeItem: HomeItem) {
@@ -1104,7 +1119,7 @@ class HomeFragment : Fragment(),
             callbackEditTitle = {
                 openEditTitle(it) {editItem ->
 
-                    Global.updateFolder(editItem)
+                    Global.updateItem(editItem)
 
                     folderDialog?.updateTitle(editItem)
 
@@ -1116,7 +1131,8 @@ class HomeFragment : Fragment(),
         ) {
             openFolderToAppMenu(folder, it)
         }
-        folderDialog?.open(overlayMenuView)
+
+        openOverlayView(folderDialog!!)
 
     }
 
@@ -1175,19 +1191,22 @@ class HomeFragment : Fragment(),
             }
         )
 
-        appMenuFloatDialog.open(overlayMenuView2, startX.toFloat(), startY)
+        openOverlayView2(appMenuFloatDialog)
+        appMenuFloatDialog.setDialogSize(startX.toFloat(), startY)
     }
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
     private fun openEditTitle(item: HomeItem, callback:(HomeItem) -> Unit) {
-        val dialog = EditTitleDialog(requireContext(), item) {
+        val dialog = TitleEditDialog(item) {
             callback.invoke(it)
         }
-        dialog?.open(overlayMenuView2)
+        dialog.show(this.parentFragmentManager, "")
     }
 
-///////////////////////////////////////////////////////////////////////////////////////////////
 
     private fun openMenuDialog() {
         android.util.Log.i(TAG,"openMenuDialog")

@@ -275,21 +275,6 @@ fun createFolderInItemListView(context: Context, width: Int, height: Int): View 
     return itemView
 }
 
-
-@SuppressLint("InflateParams")
-fun createEditTitleView(context: Context, width: Int): View {
-    val layoutParams = LinearLayout.LayoutParams(
-        width,
-        WRAP_CONTENT
-    )
-
-    val itemView = LayoutInflater.from(context).inflate(R.layout.float_edit_title, null, false)
-    itemView.layoutParams = layoutParams
-
-
-    return itemView
-}
-
 // 拡張関数: Contextに対するdp変換関数
 fun Context.pxToDp(px: Float): Float {
     return TypedValue.applyDimension(

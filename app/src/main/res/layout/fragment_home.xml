@@ -36,16 +36,6 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <net.mikemobile.mikelauncher.ui.custom.DragAndDropView
-        android:id="@+id/dragAndDropView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <net.mikemobile.mikelauncher.ui.custom.OverlayMenuView
         android:id="@+id/overlay_view"
         android:layout_width="match_parent"
@@ -74,5 +64,15 @@
         tools:visibility="visible">
 
     </net.mikemobile.mikelauncher.ui.custom.OverlayMenuView>
+
+    <net.mikemobile.mikelauncher.ui.custom.DragAndDropView
+        android:id="@+id/dragAndDropView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

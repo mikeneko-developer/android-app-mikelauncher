@@ -39,9 +39,7 @@ class AppMenuFloatDialog(private val context: Context,
         }
     }
 
-    fun open(ownerView: ConstraintLayout?, startX: Float, startY: Float) {
-        super.open(ownerView, false)
-
+    fun setDialogSize(startX: Float, startY: Float) {
         getDialogView()?.let {
             it.translationX = startX
             it.translationY = startY

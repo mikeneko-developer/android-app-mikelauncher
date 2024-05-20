@@ -28,7 +28,7 @@ class Global {
 
         var selectItem: MutableLiveData<HomeItem> = MutableLiveData<HomeItem>(null)
 
-        fun updateFolder(folder: HomeItem) {
+        fun updateItem(folder: HomeItem) {
 
             if (homeItemData.updateItem(folder)) {
                 // 更新あり
