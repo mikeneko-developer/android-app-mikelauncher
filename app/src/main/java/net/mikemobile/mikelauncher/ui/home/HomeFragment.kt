@@ -895,7 +895,9 @@ class HomeFragment : Fragment(),
             MotionEvent.ACTION_DOWN -> {
                 moveLog = true
                 android.util.Log.i(TAG,"onSelectGridPoint >> gridPoint: MotionEvent.ACTION_DOWN")
-                closeOverlayView()
+                if (!openIconMenuEnable) {
+                    closeOverlayView()
+                }
             }
             MotionEvent.ACTION_MOVE -> {
                 if (moveLog)android.util.Log.i(TAG,"onSelectGridPoint >> gridPoint: MotionEvent.ACTION_MOVE")
@@ -919,7 +921,9 @@ class HomeFragment : Fragment(),
             MotionEvent.ACTION_UP -> {
                 dragAndDropView?.setDragAnimationDisable()
                 if (!openIconMenuEnable) {
+
                     android.util.Log.i(TAG, "onSelectGridPoint >> gridPoint: MotionEvent.ACTION_UP")
+
 
                     when (cellPointName) {
                         CELL_POINT_NAME.DESKTOP -> {
@@ -935,6 +939,8 @@ class HomeFragment : Fragment(),
                             }
                         }
                     }
+                } else {
+                    dragAndDropView?.setDisableTouchEvent()
                 }
             }
         }

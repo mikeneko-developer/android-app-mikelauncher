@@ -79,6 +79,9 @@ class DragAndDropView: ConstraintLayout {
     fun setEnableTouchEvent() {
         onTouchEventDisable = false
     }
+    fun getEnableTouchEventFlag(): Boolean {
+        return onTouchEventDisable
+    }
 
     fun setSplitData(row: Int, column: Int) {
         this.row = row
@@ -157,6 +160,10 @@ class DragAndDropView: ConstraintLayout {
         dragAnimation = false
     }
 
+    fun getDragAnimationFlag(): Boolean {
+        return dragAnimation
+    }
+
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
     }
@@ -205,7 +212,7 @@ class DragAndDropView: ConstraintLayout {
         }
 
         if (onTouchEventDisable) {
-
+            android.util.Log.i(TAG, "タッチ無効")
         } else if (dragAnimation) {
             data?.let { image ->
 
