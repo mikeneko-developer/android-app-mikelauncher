@@ -6,7 +6,7 @@ import android.view.View
 
 data class HomeItem(
     var id: Int,
-    val homeName: String,
+    var homeName: String,
     val image: String?,
 
     val type: Int, // 0 = アプリ , 1 = widget

@@ -35,6 +35,28 @@ class FolderManagement() {
         return list
     }
 
+
+
+    fun updateItem(folderId: Int, item: HomeItem): ArrayList<HomeItem> {
+        val folderKey = "" + folderId
+
+        val list = if (itemList.size == 0 || !itemList.containsKey(folderKey)) {
+            ArrayList<HomeItem>()
+        } else {
+            itemList[folderKey]!!
+        }
+
+        for(i in 0 until list.size) {
+            if (list[i].id == item.id && list[i].packageName == item.packageName) {
+                list.set(i, item)
+                break
+            }
+        }
+        itemList[folderKey] = list
+
+        return list
+    }
+
     fun removeItem(folderId: Int, item: HomeItem): Boolean {
         val folderKey = "" + folderId
 

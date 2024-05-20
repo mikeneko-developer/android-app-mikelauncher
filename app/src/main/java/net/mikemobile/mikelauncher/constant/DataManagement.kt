@@ -204,7 +204,36 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
     }
 
 
+    fun updateItem(newItem: HomeItem): Boolean {
+        var update = false
 
+        for (key in itemList.keys) {
+            val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+                HashMap<String, HomeItem>()
+            } else {
+                itemList[key]!!
+            }
+
+
+            for (itemKey in list.keys) {
+                val item = list[itemKey]
+
+                if (item!!.id == newItem.id && item!!.row == newItem.row && item?.column == newItem.column) {
+                    list[itemKey] = newItem
+                    update = true
+                    break
+                }
+            }
+
+            if (update) {
+                itemList[key] = list
+                break
+            }
+
+        }
+
+        return update
+    }
 
 
     fun getWidgetHomeItem(position: Int, widgetId: Int): HomeItem? {

@@ -5,17 +5,29 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import net.mikemobile.mikelauncher.constant.Global
+import net.mikemobile.mikelauncher.ui.home.hideKeyboard
 
 
-abstract class BaseFloatingDialog(context: Context) {
+abstract class BaseFloatingDialog(private val context: Context) {
 
     private var dialogView: View? = null
     private var ownerView: ViewGroup? = null
     init {
+        // Viewの生成
         dialogView = onCreate(context)
-        dialogView?.let {
-            onCreateView(context, it)
+
+        // Viewへの干渉は確実にメインスレッドで実施する
+        CoroutineScope(Dispatchers.Main).launch {
+            dialogView?.let {
+                onCreateView(context, it)
+            }
         }
+
     }
 
     abstract fun onCreate(context: Context): View?
@@ -79,6 +91,7 @@ abstract class BaseFloatingDialog(context: Context) {
     }
 
     fun close() {
+        hideKeyboard(context)
         ownerView?.let {
             it.removeAllViews()
             it.visibility = View.GONE

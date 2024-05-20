@@ -1,6 +1,7 @@
 package net.mikemobile.mikelauncher.ui.home
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetManager
 import android.content.Context
@@ -17,6 +18,7 @@ import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -78,8 +80,14 @@ fun createToolFolderView(context: Context, item: HomeItem, list: ArrayList<HomeI
     val imageView = itemView.findViewById<ImageView>(R.id.icon_image)
     imageView.setImageDrawable(item.icon)
 
+    val name = if (item.homeName != ""){
+        item.homeName
+    } else {
+        item.label
+    }
+
     val textView = itemView.findViewById<TextView>(R.id.icon_name)
-    textView.text = item.label
+    textView.text = name
 
     val imageView1 = itemView.findViewById<ImageView>(R.id.imageView1)
     val imageView2 = itemView.findViewById<ImageView>(R.id.imageView2)
@@ -267,6 +275,21 @@ fun createFolderInItemListView(context: Context, width: Int, height: Int): View 
     return itemView
 }
 
+
+@SuppressLint("InflateParams")
+fun createEditTitleView(context: Context, width: Int): View {
+    val layoutParams = LinearLayout.LayoutParams(
+        width,
+        WRAP_CONTENT
+    )
+
+    val itemView = LayoutInflater.from(context).inflate(R.layout.float_edit_title, null, false)
+    itemView.layoutParams = layoutParams
+
+
+    return itemView
+}
+
 // 拡張関数: Contextに対するdp変換関数
 fun Context.pxToDp(px: Float): Float {
     return TypedValue.applyDimension(
@@ -328,4 +351,13 @@ fun Int.dpToPx(context: Context): Float {
 // Float型に対する拡張関数
 fun Float.dpToPx(context: Context): Float {
     return context.dpToPx(this)
+}
+
+
+fun hideKeyboard(context: Context) {
+    val inputMethodManager = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+    val currentFocus = (context as Activity).currentFocus
+    currentFocus?.let {
+        inputMethodManager.hideSoftInputFromWindow(it.windowToken, 0)
+    }
 }

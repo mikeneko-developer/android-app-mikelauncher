@@ -33,6 +33,7 @@ import net.mikemobile.mikelauncher.data.HomeItem
 import net.mikemobile.mikelauncher.ui.custom.DragAndDropView
 import net.mikemobile.mikelauncher.ui.custom.OverlayMenuView
 import net.mikemobile.mikelauncher.ui.custom_float.AppMenuFloatDialog
+import net.mikemobile.mikelauncher.ui.custom_float.EditTitleDialog
 import net.mikemobile.mikelauncher.ui.custom_float.FolderFloatDialog
 import net.mikemobile.mikelauncher.ui.custom_float.ToolItemListFloatDialog
 import net.mikemobile.mikelauncher.ui.dialog.MenuDialog
@@ -958,6 +959,7 @@ class HomeFragment : Fragment(),
     }
 
     private fun closeOverLayView2() {
+        hideKeyboard(requireContext())
         overlayMenuView2?.let {
             it.removeAllViews()
             it.visibility = View.GONE
@@ -1090,18 +1092,26 @@ class HomeFragment : Fragment(),
 
         val cellSize = dragAndDropView?.getGridSize()
 
-        var height = 100f
-        cellSize?.let {
-            height = cellSize.height
-        }
-
         val list = Global.folderManager.getList(folder.folderId)
         folderDialog = FolderFloatDialog(
             context = requireContext(),
+            folder = folder,
             list = list,
             callback = {
                 Global.launch(requireContext(), it, null)
                 folderDialog = null
+            },
+            callbackEditTitle = {
+                openEditTitle(it) {editItem ->
+
+                    Global.updateFolder(editItem)
+
+                    folderDialog?.updateTitle(editItem)
+
+                    updateFolderApp(folder)
+
+                    pref.setAppsList()
+                }
             }
         ) {
             openFolderToAppMenu(folder, it)
@@ -1168,6 +1178,14 @@ class HomeFragment : Fragment(),
         appMenuFloatDialog.open(overlayMenuView2, startX.toFloat(), startY)
     }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+    private fun openEditTitle(item: HomeItem, callback:(HomeItem) -> Unit) {
+        val dialog = EditTitleDialog(requireContext(), item) {
+            callback.invoke(it)
+        }
+        dialog?.open(overlayMenuView2)
+    }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 

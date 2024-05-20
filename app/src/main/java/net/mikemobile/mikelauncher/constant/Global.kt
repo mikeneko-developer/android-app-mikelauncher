@@ -28,6 +28,15 @@ class Global {
 
         var selectItem: MutableLiveData<HomeItem> = MutableLiveData<HomeItem>(null)
 
+        fun updateFolder(folder: HomeItem) {
+
+            if (homeItemData.updateItem(folder)) {
+                // 更新あり
+            } else if (dockItemData.updateItem(folder)) {
+                // 更新あり
+            }
+        }
+
 
         /**
          * アイコン取得

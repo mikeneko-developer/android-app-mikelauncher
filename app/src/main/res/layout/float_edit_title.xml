@@ -8,23 +8,25 @@
     android:orientation="vertical">
 
     <TextView
-        android:id="@+id/folder_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_horizontal|center_vertical"
         android:padding="5dp"
-        android:text="フォルダー名"
+        android:text="タイトル編集"
         android:textColor="#323232"
         android:textSize="16sp" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
+    <EditText
+        android:id="@+id/edit_title"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="text"
+        android:text="Name" />
 
     <Button
         android:id="@+id/button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="閉じる" />
+        android:text="保存" />
 </LinearLayout>
