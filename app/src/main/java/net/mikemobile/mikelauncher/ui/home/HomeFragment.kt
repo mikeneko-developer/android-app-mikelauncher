@@ -20,12 +20,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.viewpager2.widget.ViewPager2
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import net.mikemobile.mikelauncher.MainActivity
 import net.mikemobile.mikelauncher.R
 import net.mikemobile.mikelauncher.constant.CELL_POINT_NAME
@@ -98,6 +93,7 @@ class HomeFragment : Fragment(),
 
 
     private var overlayMenuView: OverlayMenuView? = null
+    private var overlayMenuView2: OverlayMenuView? = null
     private var dragAndDropView: DragAndDropView? = null
     private var viewPager: ViewPager2? = null
     private var dockViewPager: ViewPager2? = null
@@ -115,7 +111,13 @@ class HomeFragment : Fragment(),
         overlayMenuView = view.findViewById(R.id.overlay_view) as OverlayMenuView
         overlayMenuView?.setOnOverlayMenuViewListener(this)
         overlayMenuView?.setOnClickListener {
-            closeIconMenu()
+            closeOverlayView()
+        }
+
+        overlayMenuView2 = view.findViewById(R.id.overlay_view2) as OverlayMenuView
+        overlayMenuView2?.setOnOverlayMenuViewListener(this)
+        overlayMenuView2?.setOnClickListener {
+            closeOverLayView2()
         }
 
 
@@ -321,38 +323,6 @@ class HomeFragment : Fragment(),
 
     private fun closeObserve() {
         Global.selectItem.removeObserver(itemObserver)
-    }
-    private fun onClickOpenApps() {
-        closeObserve()
-        Global.selectItem.observe(viewLifecycleOwner, itemObserver)
-
-
-        val activity = this.requireActivity() as MainActivity
-        activity.openApplicationList()
-    }
-
-    private fun onClickSetting() {
-
-        val intent = Intent()
-            .setAction(Settings.ACTION_SETTINGS)
-            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
-        startActivity(intent)
-    }
-
-    private fun onClickAppSetting(item: HomeItem) {
-        val intent = Intent()
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        intent.action = Settings.ACTION_APPLICATION_SETTINGS
-        intent.putExtra(Settings.EXTRA_APP_PACKAGE, item.packageName)
-        startActivity(intent)
-    }
-
-    private fun onClickAppNotificationSetting(item: HomeItem) {
-        val intent = Intent()
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        intent.action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
-        intent.putExtra(Settings.EXTRA_APP_PACKAGE, item.packageName)
-        startActivity(intent)
     }
 
 
@@ -830,7 +800,7 @@ class HomeFragment : Fragment(),
 
 
     override fun onTouchDown(point: DragAndDropView.DimensionPoint) {
-        closeIconMenu()
+        closeOverlayView()
     }
     override fun onTouchMove(point: DragAndDropView.DimensionPoint) {}
 
@@ -919,13 +889,13 @@ class HomeFragment : Fragment(),
             MotionEvent.ACTION_DOWN -> {
                 moveLog = true
                 android.util.Log.i(TAG,"onSelectGridPoint >> gridPoint: MotionEvent.ACTION_DOWN")
-                closeIconMenu()
+                closeOverlayView()
             }
             MotionEvent.ACTION_MOVE -> {
                 if (moveLog)android.util.Log.i(TAG,"onSelectGridPoint >> gridPoint: MotionEvent.ACTION_MOVE")
                 moveLog = false
 
-                closeIconMenu()
+                closeOverlayView()
                 if (dragAndDrop) {
                     dragAndDropView?.setDragAnimationEnable()
 
@@ -975,6 +945,23 @@ class HomeFragment : Fragment(),
 
         // gridに配置する
         desktopAdapter.addGrid(view, item)
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    private fun closeOverlayView() {
+        openIconMenuEnable = false
+        overlayMenuView?.let {
+            it.removeAllViews()
+            it.visibility = View.GONE
+        }
+    }
+
+    private fun closeOverLayView2() {
+        overlayMenuView2?.let {
+            it.removeAllViews()
+            it.visibility = View.GONE
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1045,16 +1032,9 @@ class HomeFragment : Fragment(),
         appMenuFloatDialog.open(overlayMenuView, startX.toFloat(), startY)
     }
 
-    private fun closeIconMenu() {
-        openIconMenuEnable = false
-        overlayMenuView?.let {
-            it.removeAllViews()
-            it.visibility = View.GONE
-        }
-    }
 
     override fun onTouchUp() {
-        closeIconMenu()
+        closeOverlayView()
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1092,7 +1072,7 @@ class HomeFragment : Fragment(),
      */
     private fun setFolderInApp(folder: HomeItem, inItem: HomeItem) {
         // データを追加する
-        val list = Global.folderManager.addItem(folder.folderId, inItem)
+        Global.folderManager.addItem(folder.folderId, inItem)
 
         updateFolderApp(folder)
 
@@ -1108,11 +1088,22 @@ class HomeFragment : Fragment(),
     var folderDialog: FolderFloatDialog? = null
     private fun openFolderInAppData(folder: HomeItem) {
 
+        val cellSize = dragAndDropView?.getGridSize()
+
+        var height = 100f
+        cellSize?.let {
+            height = cellSize.height
+        }
+
         val list = Global.folderManager.getList(folder.folderId)
-        folderDialog = FolderFloatDialog(requireContext(), list, {
-            Global.launch(requireContext(), it, null)
-            folderDialog = null
-        }) {
+        folderDialog = FolderFloatDialog(
+            context = requireContext(),
+            list = list,
+            callback = {
+                Global.launch(requireContext(), it, null)
+                folderDialog = null
+            }
+        ) {
             openFolderToAppMenu(folder, it)
         }
         folderDialog?.open(overlayMenuView)
@@ -1174,7 +1165,7 @@ class HomeFragment : Fragment(),
             }
         )
 
-        appMenuFloatDialog.open(overlayMenuView, startX.toFloat(), startY)
+        appMenuFloatDialog.open(overlayMenuView2, startX.toFloat(), startY)
     }
 
 
@@ -1195,4 +1186,36 @@ class HomeFragment : Fragment(),
         dialog.show(this.parentFragmentManager, "")
     }
 
+    private fun onClickOpenApps() {
+        closeObserve()
+        Global.selectItem.observe(viewLifecycleOwner, itemObserver)
+
+
+        val activity = this.requireActivity() as MainActivity
+        activity.openApplicationList()
+    }
+
+    private fun onClickSetting() {
+
+        val intent = Intent()
+            .setAction(Settings.ACTION_SETTINGS)
+            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+        startActivity(intent)
+    }
+
+    private fun onClickAppSetting(item: HomeItem) {
+        val intent = Intent()
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        intent.action = Settings.ACTION_APPLICATION_SETTINGS
+        intent.putExtra(Settings.EXTRA_APP_PACKAGE, item.packageName)
+        startActivity(intent)
+    }
+
+    private fun onClickAppNotificationSetting(item: HomeItem) {
+        val intent = Intent()
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        intent.action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
+        intent.putExtra(Settings.EXTRA_APP_PACKAGE, item.packageName)
+        startActivity(intent)
+    }
 }

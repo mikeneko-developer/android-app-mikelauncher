@@ -34,6 +34,8 @@ class FolderAdapter(
         icon.setImageDrawable(list[position].icon)
         label.text = list[position].label
 
+        //holder.itemView.layoutParams.height = onGetHeight().toInt()
+
         holder.itemView.setOnClickListener {
             callback.invoke(list[position])
         }

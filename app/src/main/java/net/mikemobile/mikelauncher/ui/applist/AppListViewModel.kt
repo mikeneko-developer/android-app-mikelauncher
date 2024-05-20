@@ -12,18 +12,22 @@ import net.mikemobile.mikelauncher.R
 class AppListViewModel : ViewModel() {
     // TODO: Implement the ViewModel
 
+    var list = listOf<AppInfo>()
 
-    fun create(context: Context): List<AppInfo> {
+    fun create(context: Context, update: Boolean): List<AppInfo> {
+        if (!update && list.size > 0) return list
+
+
         val pm = context.packageManager
         val intent = Intent(Intent.ACTION_MAIN)
             .also { it.addCategory(Intent.CATEGORY_LAUNCHER) }
-        return pm.queryIntentActivities(intent, PackageManager.MATCH_ALL)
+        list = pm.queryIntentActivities(intent, PackageManager.MATCH_ALL)
             .asSequence()
             .mapNotNull { it.activityInfo }
             .filter { it.packageName != context.packageName }
             .map {
                 AppInfo(
-                    it.loadIcon(pm) ?: getDefaultIcon(context),
+//                    it.loadIcon(pm) ?: getDefaultIcon(context),
                     it.loadLabel(pm).toString(),
                     ComponentName(it.packageName, it.name),
                     it.packageName,
@@ -32,6 +36,8 @@ class AppListViewModel : ViewModel() {
             }
             .sortedBy { it.label }
             .toList()
+
+        return list
     }
 
     fun getDefaultIcon(context: Context): Drawable {

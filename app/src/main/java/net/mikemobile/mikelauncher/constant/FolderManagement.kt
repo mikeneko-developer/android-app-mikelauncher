@@ -45,7 +45,7 @@ class FolderManagement() {
         }
 
         for(i in 0 until list.size) {
-            if (list[i].id == item.id) {
+            if (list[i].id == item.id && list[i].packageName == item.packageName) {
                 list.removeAt(i)
                 break
             }
@@ -67,6 +67,26 @@ class FolderManagement() {
         list.clear()
 
         itemList[folderKey] = list
+    }
+
+    fun checkEnableApp(packageName: String, name: String): Boolean {
+
+        val keys = itemList.keys
+
+        for(key in keys) {
+            val pageList = itemList[key]
+
+            pageList?.let {
+
+                for(item in pageList) {
+                    if (item.packageName == packageName && item.name == name) {
+                        return true
+                    }
+                }
+            }
+        }
+
+        return false
     }
 
 

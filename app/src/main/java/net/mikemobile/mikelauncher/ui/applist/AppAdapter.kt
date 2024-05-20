@@ -1,5 +1,6 @@
 package net.mikemobile.mikelauncher.ui.applist
 
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -7,10 +8,15 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.mikemobile.mikelauncher.R
 import net.mikemobile.mikelauncher.constant.Global
 
 class AppAdapter(
+    private val context: Context,
     private val inflater: LayoutInflater,
     private val onClick: (view: View, info: AppInfo) -> Unit
 ) : RecyclerView.Adapter<AppAdapter.AppViewHolder>() {
@@ -22,11 +28,19 @@ class AppAdapter(
     override fun onBindViewHolder(holder: AppViewHolder, position: Int) {
         val info = list[position]
         holder.itemView.setOnClickListener { onClick(holder.icon, info) } // <- ココ
-        holder.icon.setImageDrawable(info.icon)
+
+
+        downLoadImage(info, holder.icon)
+
+        //holder.icon.setImageDrawable(info.icon)
         holder.label.text = info.label
         holder.packageName.text = info.componentName.packageName
 
-        if (Global.homeItemData.checkHomeInApps( info.componentName.packageName, info.componentName.className)) {
+        if (Global.homeItemData.checkEnableApp( info.componentName.packageName, info.componentName.className)) {
+            holder.itemView.setBackgroundResource(R.drawable.select_app)
+        } else if (Global.dockItemData.checkEnableApp( info.componentName.packageName, info.componentName.className)) {
+            holder.itemView.setBackgroundResource(R.drawable.select_app)
+        } else if (Global.folderManager.checkEnableApp( info.componentName.packageName, info.componentName.className)) {
             holder.itemView.setBackgroundResource(R.drawable.select_app)
         } else {
             holder.itemView.setBackgroundDrawable(null)
@@ -46,6 +60,18 @@ class AppAdapter(
         list = newList
         diff.dispatchUpdatesTo(this)
     }
+
+    fun downLoadImage(info: AppInfo, imageView: ImageView) {
+        CoroutineScope(Dispatchers.IO).launch {
+
+            val icon = Global.getAppIcon(context, info.packageName)
+            // メインスレッドでUIを更新
+            withContext(Dispatchers.Main) {
+                imageView.setImageDrawable(icon)
+            }
+        }
+    }
+
     private class DiffCallback(
         private val old: List<AppInfo>,
         private val new: List<AppInfo>
@@ -55,6 +81,7 @@ class AppAdapter(
         override fun areItemsTheSame(op: Int, np: Int): Boolean =
             old[op].componentName == new[np].componentName
         override fun areContentsTheSame(op: Int, np: Int): Boolean =
-            old[op].label == new[np].label && old[op].icon == new[np].icon
+//            old[op].label == new[np].label && old[op].icon == new[np].icon
+            old[op].label == new[np].label
     }
 }

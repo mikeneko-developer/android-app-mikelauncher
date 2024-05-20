@@ -5,6 +5,7 @@ import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import android.view.View
 import androidx.core.content.res.ResourcesCompat
@@ -32,13 +33,21 @@ class Global {
          * アイコン取得
          */
         fun getAppIcon(context: Context, packageName: String): Drawable? {
-            val pm = context.packageManager
+//            try {
+//                val pm = context.packageManager
+//                val icon = pm.getApplicationIcon(packageName)
+//                return icon
+//            } catch(e: Exception) {
+//                return null
+//            }
 
-            try {
-                val icon = pm.getApplicationIcon(packageName)
-                return icon
-            } catch(e: Exception) {
-                return null
+            return try {
+                val packageManager = context.packageManager
+                val appInfo = packageManager.getApplicationInfo(packageName, 0)
+                appInfo.loadIcon(packageManager)
+            } catch (e: PackageManager.NameNotFoundException) {
+                e.printStackTrace()
+                null
             }
         }
 
@@ -51,13 +60,12 @@ class Global {
             if (item.toolId != -1) return
 
             val info = AppInfo(
-                item.icon!!,
+//                item.icon!!,
                 item.label,
                 ComponentName(item.packageName, item.name),
                 item.packageName,
                 item.name
             )
-
 
             try {
                 val intent = Intent(Intent.ACTION_MAIN).also {
@@ -75,8 +83,6 @@ class Global {
             }
         }
 
-
-
         fun getToolIcon(context: Context, toolId: Int): Drawable? {
             val iconResource = if (toolId == 1) {
                 net.mikemobile.mikelauncher.R.drawable.icon_drawer_menu
@@ -91,6 +97,7 @@ class Global {
                 iconResource,
                 null)
         }
+
         fun generateId(): Int {
             val uuid = UUID.randomUUID()
             return uuid.hashCode() // ハッシュコードをIDとして使用

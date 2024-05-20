@@ -9,7 +9,7 @@ import android.graphics.drawable.Drawable
 import android.view.View
 
 data class AppInfo(
-    val icon: Drawable,
+    //val icon: Drawable,
     val label: String,
     val componentName: ComponentName,
     val packageName: String,

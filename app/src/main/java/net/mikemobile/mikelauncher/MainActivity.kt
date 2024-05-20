@@ -12,6 +12,9 @@ import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import net.mikemobile.android.view.DragLayer
 import net.mikemobile.android.view.Folder
 import net.mikemobile.mikelauncher.data.AppPreference
@@ -55,8 +58,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnLongClick
 //        mWorkspace = findViewById(R.id.workspace_main) as FrameLayout
 
 
-
-
+        // 事前にアプリリストFragmentを生成しておく
+        CoroutineScope(Dispatchers.IO).launch {
+            AppListFragment.newInstance()
+        }
     }
 
     var mAppWidgetHost: AppWidgetHost? = null
@@ -88,18 +93,23 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnLongClick
         ).commitNow()
     }
 
+    private fun setFragmentOverlay(fragment: Fragment) {
+        supportFragmentManager.beginTransaction().replace(R.id.container_overlay,
+            fragment
+        ).commitNow()
+    }
+
     private fun removeFragment(fragment: Fragment) {
         supportFragmentManager.beginTransaction().remove(fragment).commitNow()
     }
 
     fun openApplicationList() {
-        setFragment(AppListFragment.newInstance())
+        setFragmentOverlay(AppListFragment.newInstance())
     }
 
     fun closeApplicationList() {
         removeFragment(AppListFragment.newInstance())
     }
-
 
     override fun finish() {
 
@@ -120,8 +130,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnLongClick
         super.onActivityResult(requestCode, resultCode, data)
 
     }
-
-
 
     companion object {
         const val APPWIDGET_HOST_ID = 1024

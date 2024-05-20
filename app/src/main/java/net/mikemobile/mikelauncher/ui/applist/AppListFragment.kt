@@ -18,6 +18,7 @@ import net.mikemobile.mikelauncher.data.HomeItem
 class AppListFragment : Fragment() {
 
     companion object {
+        const val TAG = "AppListFragment"
         var INSTANCE: AppListFragment? = null
         fun newInstance(): AppListFragment {
             if (INSTANCE == null) {
@@ -41,6 +42,8 @@ class AppListFragment : Fragment() {
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
+        android.util.Log.i(TAG,"onActivityCreated")
+
         viewModel = ViewModelProvider(this).get(AppListViewModel::class.java)
         // TODO: Use the ViewModel
 
@@ -49,19 +52,18 @@ class AppListFragment : Fragment() {
             closeFragment()
         }
 
-
         recyclerView = this.view?.findViewById(R.id.recyclerView)
+        adapter = AppAdapter(requireContext(), layoutInflater) { view, info ->
 
 
-        adapter = AppAdapter(layoutInflater) { view, info ->
-            //info.launch(requireContext(), view)
 
             Global.selectItem.value = HomeItem(
                 0,
                 info.label,
                 null,
                 0,
-                info.icon,
+//                info.icon,
+                Global.getAppIcon(requireContext(), info.packageName),
                 info.label,
                 info.packageName,
                 info.name,
@@ -69,12 +71,12 @@ class AppListFragment : Fragment() {
 
             adapter?.notifyDataSetChanged()
         }
+
         recyclerView?.adapter = adapter
         recyclerView?.layoutManager = LinearLayoutManager(requireContext())
         //recyclerView?.layoutManager = GridLayoutManager(requireContext(), 5)
         //recyclerView?.layoutManager = StaggeredGridLayoutManager(2,StaggeredGridLayoutManager.VERTICAL)
         //StaggeredGridLayoutManager
-
 
         recyclerView?.setOnApplyWindowInsetsListener { _, insets ->
             recyclerView?.setPadding(
@@ -85,7 +87,8 @@ class AppListFragment : Fragment() {
             )
             insets
         }
-        adapter?.updateList(viewModel.create(requireContext()))
+
+        adapter?.updateList(viewModel.create(requireContext(), false))
 
         context?.registerReceiver(packageReceiver, IntentFilter().also {
             it.addAction(Intent.ACTION_PACKAGE_ADDED)
@@ -94,23 +97,33 @@ class AppListFragment : Fragment() {
             it.addAction(Intent.ACTION_PACKAGE_REPLACED)
             it.addDataScheme("package")
         })
-
     }
 
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            adapter?.updateList(viewModel.create(requireContext()))
+
+            adapter?.updateList(viewModel.create(requireContext(), true))
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        android.util.Log.i(TAG,"onResume")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        android.util.Log.i(TAG,"onPause")
+    }
 
     override fun onDestroy() {
         super.onDestroy()
+        android.util.Log.i(TAG,"onDestroy")
         context?.unregisterReceiver(packageReceiver)
     }
 
-
     private fun closeFragment() {
+        android.util.Log.i(TAG,"closeFragment")
         val activity = this.requireActivity() as MainActivity
         activity.closeApplicationList()
     }

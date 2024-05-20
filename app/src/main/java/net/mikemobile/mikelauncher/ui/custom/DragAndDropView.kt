@@ -115,6 +115,11 @@ class DragAndDropView: ConstraintLayout {
         this.lowerDockView = view
     }
 
+    fun getGridSize(): CellSize {
+        return oneCellSize
+    }
+
+
     private var dragAnimation = false
     fun setDragAnimationEnable() {
         dragAnimation = true

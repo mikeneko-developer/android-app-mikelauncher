@@ -22,13 +22,14 @@ class FolderFloatDialog(
     override fun onCreate(context: Context): View? {
 
         val displaySize = displaySize(context)
-        val width = displaySize.width / 10 * 5
+        val width = displaySize.width / 10 * 8
         val height = displaySize.height / 5 * 3
         return createFolderInItemListView(context, width, WRAP_CONTENT)
     }
 
     private var adapter: FolderAdapter? = null
     override fun onCreateView(context: Context, view: View) {
+
         adapter = FolderAdapter(context, ArrayList<HomeItem>(),{
             close()
             callback.invoke(it)
@@ -37,7 +38,7 @@ class FolderFloatDialog(
         }
 
         val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerView)
-        recyclerView.setLayoutManager(GridLayoutManager(context, 3)) // 2列のグリッド
+        recyclerView.setLayoutManager(GridLayoutManager(context, 4)) // 2列のグリッド
         recyclerView.adapter = adapter
 
         val button = view.findViewById<Button>(R.id.button)

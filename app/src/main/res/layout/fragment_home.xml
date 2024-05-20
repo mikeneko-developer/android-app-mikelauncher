@@ -25,6 +25,17 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/page_dot_frame"
+        android:layout_width="match_parent"
+        android:layout_height="20dp"
+        android:background="#3300BCD4"
+        app:layout_constraintBottom_toTopOf="@+id/dockViewPager"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
     <net.mikemobile.mikelauncher.ui.custom.DragAndDropView
         android:id="@+id/dragAndDropView"
         android:layout_width="match_parent"
@@ -39,7 +50,21 @@
         android:id="@+id/overlay_view"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:background="#2A000000"
+        android:background="#40000000"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible">
+    </net.mikemobile.mikelauncher.ui.custom.OverlayMenuView>
+
+    <net.mikemobile.mikelauncher.ui.custom.OverlayMenuView
+        android:id="@+id/overlay_view2"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="#40000000"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -50,14 +75,4 @@
 
     </net.mikemobile.mikelauncher.ui.custom.OverlayMenuView>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/page_dot_frame"
-        android:layout_width="match_parent"
-        android:layout_height="20dp"
-        android:background="#3300BCD4"
-        app:layout_constraintBottom_toTopOf="@+id/dockViewPager"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

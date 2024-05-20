@@ -287,7 +287,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         return null
     }
 
-    fun checkHomeInApps(packageName: String, name: String): Boolean {
+    fun checkEnableApp(packageName: String, name: String): Boolean {
 
         val keys = itemList.keys
 

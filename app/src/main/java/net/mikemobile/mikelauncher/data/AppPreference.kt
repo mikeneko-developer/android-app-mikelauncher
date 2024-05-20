@@ -131,7 +131,7 @@ class AppPreference(private val context: Context) {
                         val itemKey = item["key"]!!
                         val homeItem = HomeItem(item)
 
-                        if (homeItem.id == -1) {
+                        if (homeItem.id == -1 || homeItem.id == 0) {
                             homeItem.id = generateId()
                         }
 
@@ -169,7 +169,7 @@ class AppPreference(private val context: Context) {
                         val itemKey = item["key"]!!
                         val homeItem = HomeItem(item)
 
-                        if (homeItem.id == -1) {
+                        if (homeItem.id == -1 || homeItem.id == 0) {
                             homeItem.id = generateId()
                         }
 
@@ -206,7 +206,7 @@ class AppPreference(private val context: Context) {
                     for(item in folderInItemList) {
                         val homeItem = HomeItem(item)
 
-                        if (homeItem.id == -1) {
+                        if (homeItem.id == -1 || homeItem.id == 0) {
                             homeItem.id = generateId()
                         }
 
