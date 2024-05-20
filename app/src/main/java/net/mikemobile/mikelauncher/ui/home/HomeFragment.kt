@@ -956,8 +956,6 @@ class HomeFragment : Fragment(),
         dialog.open(overlayMenuView, isCenter)
     }
     private fun openOverlayView2(dialog: BaseFloatingDialog, isCenter: Boolean = true) {
-        dragAndDropView?.setDisableTouchEvent()
-
         dialog.open(overlayMenuView2, isCenter)
     }
 
@@ -976,7 +974,6 @@ class HomeFragment : Fragment(),
             it.removeAllViews()
             it.visibility = View.GONE
         }
-        dragAndDropView?.setEnableTouchEvent()
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1155,12 +1152,10 @@ class HomeFragment : Fragment(),
 
     private fun openFolderToAppMenu(folder: HomeItem, item: HomeItem) {
 
-        openIconMenuEnable = true
-
         val width = 600
         val height = 120.dpToPx(requireContext())
 
-        val gridPoint = GridPoint(Global.ROW_COUNT / 2, Global.COLUMN_COUNT / 2)
+        val gridPoint = GridPoint(folder.row, folder.column)
 
         val displaySize = viewPager!!.getSize()
 
