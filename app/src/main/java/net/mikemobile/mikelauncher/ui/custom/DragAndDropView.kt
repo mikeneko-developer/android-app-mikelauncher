@@ -15,6 +15,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import net.mikemobile.mikelauncher.constant.CELL_POINT_NAME
 import net.mikemobile.mikelauncher.constant.CellSize
 import net.mikemobile.mikelauncher.constant.GridPoint
+import net.mikemobile.mikelauncher.util.processImageToFill
 import net.mikemobile.mikelauncher.util.processImageToOutline
 
 class DragAndDropView: ConstraintLayout {
@@ -24,15 +25,22 @@ class DragAndDropView: ConstraintLayout {
     private val TAG = "DragAndDropView"
 
     private val paint = Paint()
+    private val iconPaint = Paint()
 
     constructor(context: Context): super(context){
-        paint.color = Color.DKGRAY
+        setPaintData()
     }
     constructor(context: Context, attrs: AttributeSet?): super(context, attrs){
-        paint.color = Color.DKGRAY
+        setPaintData()
     }
     constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int): super(context, attrs, defStyleAttr){
+        setPaintData()
+    }
+
+    private fun setPaintData() {
         paint.color = Color.DKGRAY
+        iconPaint.color = Color.DKGRAY
+        iconPaint.alpha = 150
     }
 
     private var listener: OnDragAndDropViewListener? = null
@@ -112,7 +120,10 @@ class DragAndDropView: ConstraintLayout {
         }
 
         data?.let {
-            outlineImage = processImageToOutline(data)
+            //outlineImage = processImageToOutline(data)
+            outlineImage = processImageToFill(data)
+
+
         }
 
         invalidate()
@@ -214,22 +225,29 @@ class DragAndDropView: ConstraintLayout {
 
                             //
                             android.util.Log.i(TAG, "配置予定位置の描画")
-                            canvas.drawBitmap(img, matrix, paint)
+                            canvas.drawBitmap(img, matrix, iconPaint)
                         }
                     }
                 }
 
                 iconPoint?.let { iconPoint ->
                     movePosition?.let { move ->
-                        val positionX = iconPoint.x + move.x
-                        val positionY = iconPoint.y + move.y - (image.height / 3)
+                        val scale = 1.2f
+
+                        val scaleChangeWidth = ((image.width * scale) - image.width) / 2
+                        val scaleChangeHeight = ((image.height * scale) - image.height) / 2
+
+                        val positionX = -scaleChangeWidth + iconPoint.x + move.x
+                        val positionY = -scaleChangeHeight + iconPoint.y + move.y - (image.height / 3)
 
                         val matrix = Matrix()
+                        matrix.setScale(scale, scale)
+
                         matrix.postTranslate(positionX, positionY)
 
                         //
                         android.util.Log.i(TAG, "アイコン描画")
-                        canvas.drawBitmap(image, matrix, paint)
+                        canvas.drawBitmap(image, matrix, iconPaint)
                     }
                 }
             }

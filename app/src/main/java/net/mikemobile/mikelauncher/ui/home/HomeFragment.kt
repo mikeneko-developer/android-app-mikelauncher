@@ -40,6 +40,7 @@ import net.mikemobile.mikelauncher.ui.custom_float.FolderFloatDialog
 import net.mikemobile.mikelauncher.ui.custom_float.ToolItemListFloatDialog
 import net.mikemobile.mikelauncher.ui.dialog.MenuDialog
 import net.mikemobile.mikelauncher.ui.dialog.TitleEditDialog
+import net.mikemobile.mikelauncher.util.getViewCapture
 
 
 class HomeFragment : Fragment(),

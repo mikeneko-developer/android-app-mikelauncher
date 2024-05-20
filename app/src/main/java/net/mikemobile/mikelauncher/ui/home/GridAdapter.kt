@@ -18,6 +18,7 @@ import net.mikemobile.mikelauncher.constant.Global
 import net.mikemobile.mikelauncher.constant.GridPoint
 import net.mikemobile.mikelauncher.data.HomeItem
 import net.mikemobile.mikelauncher.ui.custom.DragAndDropView
+import net.mikemobile.mikelauncher.util.getViewCapture
 
 class GridViewHolder(itemView: View): RecyclerView.ViewHolder(itemView)
 interface OnGridAdapterListener {

@@ -150,16 +150,6 @@ fun checkPosition(view: View, point: ArrayList<Float>): ArrayList<Float> {
     return point
 }
 
-fun getViewCapture(view: View): Bitmap? {
-    view.isDrawingCacheEnabled = true
-
-    // Viewのキャッシュを取得
-    val cache = view.drawingCache
-    val screenShot = Bitmap.createBitmap(cache)
-    view.isDrawingCacheEnabled = false
-    return screenShot
-}
-
 fun getWidgetView(context: Context, mAppWidgetHost: AppWidgetHost, widgetId: Int): View? {
 
     val appWidgetProviderInfo2 =
@@ -319,7 +309,6 @@ fun View.getSize(): Size {
     return Size(this.width, this.height)
 }
 
-
 // Contextに対する拡張関数
 fun Context.dpToPx(dp: Float): Float {
     return TypedValue.applyDimension(
@@ -340,6 +329,9 @@ fun Float.dpToPx(context: Context): Float {
 }
 
 
+/**
+ * キーボードを非表示にします
+ */
 fun hideKeyboard(context: Context) {
     val inputMethodManager = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
     val currentFocus = (context as Activity).currentFocus
@@ -348,6 +340,9 @@ fun hideKeyboard(context: Context) {
     }
 }
 
+/**
+ * Viewから座標を取得する
+ */
 fun checkPosition(view: View): DragAndDropView.DimensionPoint {
     return checkPosition(view, DragAndDropView.DimensionPoint(view.x, view.y))
 }
