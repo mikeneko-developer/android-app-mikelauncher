@@ -12,7 +12,10 @@ import net.mikemobile.mikelauncher.data.HomeItem
 import net.mikemobile.mikelauncher.ui.home.createToolListView
 import net.mikemobile.mikelauncher.ui.home.displaySize
 
-class ToolItemListFloatDialog(context: Context, private val callback: (HomeItem) -> Unit) : BaseFloatingDialog(context) {
+class ToolItemListFloatDialog(
+    context: Context,
+    private val callback: (HomeItem) -> Unit,
+    close:() -> Unit) : BaseFloatingDialog(context, close) {
     override fun onCreate(context: Context): View? {
 
         val displaySize = displaySize(context)

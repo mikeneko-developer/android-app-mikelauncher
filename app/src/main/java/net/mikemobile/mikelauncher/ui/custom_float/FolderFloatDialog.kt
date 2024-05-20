@@ -21,7 +21,8 @@ class FolderFloatDialog(
     private val list: ArrayList<HomeItem>,
     private val callback: (HomeItem) -> Unit,
     private val callbackEditTitle: (HomeItem) -> Unit,
-    private val callbackLongClick: (HomeItem) -> Unit) : BaseFloatingDialog(context) {
+    private val callbackLongClick: (HomeItem) -> Unit,
+    close:() -> Unit) : BaseFloatingDialog(context, close) {
 
     override fun onCreate(context: Context): View? {
 

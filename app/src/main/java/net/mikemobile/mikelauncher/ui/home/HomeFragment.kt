@@ -620,9 +620,8 @@ class HomeFragment : Fragment(),
         android.util.Log.i(TAG,"画像を登録します")
         dragDrop.setDragImage(bitmap, DragAndDropView.DimensionPoint(positionX, positionY))
 
-        //adapter.removePageItem(gridPage,gridPoint.row, gridPoint.column)
-
-        openIconMenu(cellPointName, homeItem, positionX, positionY)
+        // フロートメニューを表示する
+        openIconMenu(cellPointName, homeItem, point.x, point.y)
     }
 
     /**
@@ -951,15 +950,15 @@ class HomeFragment : Fragment(),
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    private fun openOverlayView(dialog: BaseFloatingDialog, isTouchLimit: Boolean = true) {
+    private fun openOverlayView(dialog: BaseFloatingDialog, isCenter: Boolean = true, isTouchLimit: Boolean = true) {
         if (isTouchLimit)dragAndDropView?.setDisableTouchEvent()
 
-        dialog.open(overlayMenuView)
+        dialog.open(overlayMenuView, isCenter)
     }
-    private fun openOverlayView2(dialog: BaseFloatingDialog) {
+    private fun openOverlayView2(dialog: BaseFloatingDialog, isCenter: Boolean = true) {
         dragAndDropView?.setDisableTouchEvent()
 
-        dialog.open(overlayMenuView2)
+        dialog.open(overlayMenuView2, isCenter)
     }
 
     private fun closeOverlayView() {
@@ -989,15 +988,26 @@ class HomeFragment : Fragment(),
         val width = 600
         val height = 120.dpToPx(requireContext())
 
+        // 位置計算
         val gridPoint = desktopAdapter.getGridPoint(DragAndDropView.DimensionPoint(positionX, positionY))
 
+        android.util.Log.i("IconMenu","Grid row:" + gridPoint.row + " / column:" + gridPoint.column)
+
         val displaySize = viewPager!!.getSize()
+
+        android.util.Log.i("IconMenu","displaySize width:" + displaySize.width + " / height:" + displaySize.height)
 
         val oneWidth = displaySize.width / Global.COLUMN_COUNT
         val oneHeight = displaySize.height / Global.ROW_COUNT
 
+        android.util.Log.i("IconMenu","GridSize width:" + oneWidth + " / height:" + oneHeight)
+
+
         var startX = oneWidth / 2 + (oneWidth * gridPoint.column)
         var startY = (oneHeight * gridPoint.row) - height
+
+        android.util.Log.i("IconMenu","Grid Center x:" + startX + " / startY:" + startY)
+
 
         startX -= width / 2
 
@@ -1011,7 +1021,7 @@ class HomeFragment : Fragment(),
             startY = (oneHeight * (gridPoint.row + 1)).toFloat() + 10
         }
 
-        // 位置計算
+        android.util.Log.i("IconMenu","Dialog Position startX:" + startX + " / startY:" + startY)
 
         val appMenuFloatDialog = AppMenuFloatDialog(requireContext(),
             callbackDelete = {
@@ -1043,10 +1053,12 @@ class HomeFragment : Fragment(),
             callbackEdit = {
 
             }
-        )
+        ) {
+            closeOverlayView()
+        }
 
-        openOverlayView(appMenuFloatDialog, false)
         appMenuFloatDialog.setDialogSize(startX.toFloat(), startY)
+        openOverlayView(appMenuFloatDialog, false)
     }
 
 
@@ -1057,9 +1069,11 @@ class HomeFragment : Fragment(),
     ///////////////////////////////////////////////////////////////////////////////////////////////
     fun openToolDialog() {
         android.util.Log.i(TAG,"openToolDialog")
-        val floatDdialog = ToolItemListFloatDialog(requireContext()) {
+        val floatDdialog = ToolItemListFloatDialog(requireContext(),{
 
             addTool(it)
+        }) {
+            closeOverlayView()
         }
 
         openOverlayView(floatDdialog)
@@ -1127,9 +1141,12 @@ class HomeFragment : Fragment(),
 
                     pref.setAppsList()
                 }
+            },
+            {
+                openFolderToAppMenu(folder, it)
             }
         ) {
-            openFolderToAppMenu(folder, it)
+            closeOverlayView()
         }
 
         openOverlayView(folderDialog!!)
@@ -1189,9 +1206,11 @@ class HomeFragment : Fragment(),
 
 
             }
-        )
+        ){
+            closeOverLayView2()
+        }
 
-        openOverlayView2(appMenuFloatDialog)
+        openOverlayView2(appMenuFloatDialog, false)
         appMenuFloatDialog.setDialogSize(startX.toFloat(), startY)
     }
 

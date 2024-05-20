@@ -13,7 +13,7 @@ import net.mikemobile.mikelauncher.constant.Global
 import net.mikemobile.mikelauncher.ui.home.hideKeyboard
 
 
-abstract class BaseFloatingDialog(private val context: Context) {
+abstract class BaseFloatingDialog(private val context: Context, private val close:() -> Unit) {
 
     private var dialogView: View? = null
     private var ownerView: ViewGroup? = null
@@ -92,6 +92,7 @@ abstract class BaseFloatingDialog(private val context: Context) {
 
     fun close() {
         hideKeyboard(context)
+        close.invoke()
         ownerView?.let {
             it.removeAllViews()
             it.visibility = View.GONE

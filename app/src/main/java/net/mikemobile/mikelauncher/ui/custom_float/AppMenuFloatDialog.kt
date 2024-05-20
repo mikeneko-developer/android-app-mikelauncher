@@ -10,8 +10,9 @@ import net.mikemobile.mikelauncher.ui.home.createMenuView
 class AppMenuFloatDialog(private val context: Context,
                          private val callbackDelete: () -> Unit,
                          private val callbackInfo: () -> Unit,
-                         private val callbackEdit: () -> Unit
-) : BaseFloatingDialog(context) {
+                         private val callbackEdit: () -> Unit,
+                         close:() -> Unit
+) : BaseFloatingDialog(context, close) {
     override fun onCreate(context: Context): View? {
 
         val width = 600
