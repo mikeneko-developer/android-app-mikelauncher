@@ -120,8 +120,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
             // データある場合
 
             // 指定箇所以降にWidgetがある場合は一旦移動はなしとする
-            if (!checkWidgetOnCell(row, column)) return ITEM_MOVE.MOVE_NG
-
+            //if (!checkWidgetOnCell(row, column)) return ITEM_MOVE.MOVE_NG
 
 
             // 指定場所以降にスペースがあるかチェックする

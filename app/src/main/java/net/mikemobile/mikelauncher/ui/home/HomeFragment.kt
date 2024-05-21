@@ -718,7 +718,6 @@ class HomeFragment : Fragment(),
                 // 移動元のデータを削除する
                 Global.homeItemData.removeHomeItem(gridPage, prevPoint.row, prevPoint.column)
 
-
                 if (Global.homeItemData.checkToolToFolder(gridPage, newPoint.row, newPoint.column, item)) {
                     android.util.Log.i(TAG,"endDragAndDrop >>   移動先がフォルダなので特殊な操作をする")
                     // フォルダなので特殊な操作をする
@@ -750,12 +749,15 @@ class HomeFragment : Fragment(),
                         Global.homeItemData,
                         gridPage,
                         prevPoint.row, prevPoint.column,
-                        Global.homeItemData,  gridCount, adapter)
+                        Global.homeItemData,  gridCount, adapter, adapter)
                 }
 
             } else if (cellPointName == CELL_POINT_NAME.DOCK) {
-                // 移動前のデータをリストから消す
                 android.util.Log.i(TAG,"endDragAndDrop >> setGrid-2")
+                // 移動元のデータを削除する
+                Global.dockItemData.removeHomeItem(0, prevPoint.row, prevPoint.column)
+
+
                 setGrid(item,
                     view,
                     0,
@@ -764,7 +766,7 @@ class HomeFragment : Fragment(),
                     Global.dockItemData,
                     0,
                     0,
-                    prevPoint.column, Global.dockItemData, gridCount, adapter)
+                    prevPoint.column, Global.dockItemData, gridCount, adapter, adapter)
             }
 
         } else {
@@ -775,6 +777,8 @@ class HomeFragment : Fragment(),
                 val newPoint = Global.calcDimenToGridPoint(point)
                 val prevPoint = GridPoint(0, item.column)
 
+                // 移動元のデータを削除する
+                Global.dockItemData.removeHomeItem(0, prevPoint.row, prevPoint.column)
 
                 if (Global.homeItemData.checkToolToFolder(gridPage, newPoint.row, newPoint.column, item)) {
                     if (item.widgetId != -1) {
@@ -807,16 +811,18 @@ class HomeFragment : Fragment(),
                         Global.homeItemData,
                         0,
                         prevPoint.row,
-                        prevPoint.column, Global.dockItemData, gridCount, adapter)
+                        prevPoint.column, Global.dockItemData, gridCount, adapter, dockAdapter)
                 }
 
 
 
             } else if (cellPointName == CELL_POINT_NAME.DOCK) {
+
                 val newPoint = Global.calcDimenToGridPoint(point)
                 newPoint.row = 0
                 val prevPoint = GridPoint(item.row, item.column)
-                val row = 0
+
+                Global.homeItemData.removeHomeItem(gridPage, prevPoint.row, prevPoint.column)
 
                 android.util.Log.i(TAG,"endDragAndDrop >> setGrid-4")
                 setGrid(item,
@@ -827,7 +833,7 @@ class HomeFragment : Fragment(),
                     Global.dockItemData,
                     gridPage,
                     prevPoint.row,
-                    prevPoint.column, Global.homeItemData, gridCount, adapter)
+                    prevPoint.column, Global.homeItemData, gridCount, adapter, desktopAdapter)
             }
         }
 
@@ -1130,7 +1136,8 @@ class HomeFragment : Fragment(),
         prevColumn: Int,
         deleteItemData: DataManagement,
         gridCount: GridCount,
-        adapter: GridAdapter) {
+        adapter: GridAdapter,
+        prevAdapter: GridAdapter) {
 
         android.util.Log.i(TAG,"setGrid >>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
@@ -1157,7 +1164,7 @@ class HomeFragment : Fragment(),
             item.row = prevRow
             item.column = prevColumn
             itemData.setItem(page, prevRow, prevColumn, item)
-            adapter.selectItem(view, gridCount, prevRow, prevColumn, false)
+            prevAdapter.selectItem(view, gridCount, prevRow, prevColumn, false)
         } else {
             android.util.Log.i(TAG,"setGrid >> 保存結果" + "データを追加")
             item.row = row
