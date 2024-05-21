@@ -16,7 +16,6 @@ import net.mikemobile.mikelauncher.constant.CELL_POINT_NAME
 import net.mikemobile.mikelauncher.constant.CellSize
 import net.mikemobile.mikelauncher.constant.GridPoint
 import net.mikemobile.mikelauncher.util.processImageToFill
-import net.mikemobile.mikelauncher.util.processImageToOutline
 
 class DragAndDropView: ConstraintLayout {
     private val DEBUG_MODE = true

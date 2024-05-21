@@ -1,5 +1,7 @@
 package net.mikemobile.mikelauncher.constant
 
+import android.view.View
+
 
 enum class HomeItemType(val value: Int) {
     APP(1),
@@ -24,3 +26,9 @@ enum class ITEM_MOVE {
 data class CellSize(var width: Float, var height: Float)
 data class DimenPoint(val x: Float, val y: Float)
 data class GridPoint(var row: Int, var column: Int)
+data class WidgetData(
+    var view: View,
+    var width: Int,
+    var height: Int,
+    val label: String,
+)

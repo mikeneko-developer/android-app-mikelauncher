@@ -18,12 +18,23 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         var row = -1
         var column = -1
 
-        for(rowId in 0 until 10) {
-            for(columnId in 0 until 5) {
+        for(rowId in 0 until Global.ROW_COUNT) {
+            for(columnId in 0 until Global.COLUMN_COUNT) {
                 val itemKey = "$rowId-$columnId"
                 if (!list.containsKey(itemKey)) {
-                    row = rowId
-                    column = columnId
+
+                    if (
+                        (item.fieldRow > 1 || item.fieldColumn > 1)
+                        && checkFieldSpace(item, page, rowId, columnId)
+                    ) {
+                        // widgetだったら、配置範囲が空白かチェックする
+                        row = rowId
+                        column = columnId
+                    } else {
+                        // widgetじゃないので追加とする
+                        row = rowId
+                        column = columnId
+                    }
 
                     break
                 }
@@ -35,12 +46,27 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         }
 
         if (row != -1 && column != -1) {
+
             item.row = row
             item.column = column
 
             val itemKey = "$row-$column"
             list[itemKey] = item
             itemList[key] = list
+
+            if (item.fieldRow > 1 || item.fieldColumn > 1) {
+                for(rowId in row until (row + item.fieldRow)) {
+                    for(columnId in column until (column + item.fieldColumn)) {
+                        if (rowId != row || columnId != column) {
+                            val fieldItemKey = "$rowId-$columnId"
+
+                            val fieldItem = item.copyField(rowId, columnId)
+                            list[fieldItemKey] = fieldItem
+                            itemList[key] = list
+                        }
+                    }
+                }
+            }
 
             return true
         } else {
@@ -68,6 +94,12 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         val addItemKey = "$row-$column"
 
         if (!list.containsKey(addItemKey)) {
+            if (item.widgetId != -1 && (item.fieldRow > 0 || item.fieldColumn > 0)) {
+                // widgetでかつサイズが１＊１より大きい場合に空きがないかチェックする
+                //if (!checkWidgetOnCell(row, column)) return ITEM_MOVE.MOVE_NG
+            }
+
+
             // データがないので入れて終わり
 
             item.row = row
@@ -76,8 +108,19 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
             list[addItemKey] = item
             itemList[key] = list
 
+            if (item.widgetId != -1) {
+                removeWidgetField(item.id)
+                addWidgetField(position, item)
+            }
+
+
         } else {
             // データある場合
+
+            // 指定箇所以降にWidgetがある場合は一旦移動はなしとする
+            if (!checkWidgetOnCell(row, column)) return ITEM_MOVE.MOVE_NG
+
+
 
             // 指定場所以降にスペースがあるかチェックする
             var blancCellEnable = checkBlank(list, row, column)
@@ -146,7 +189,6 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
 
         for (key in list.keys) {
             val item = list[key]
-
             if (item!!.widgetId == widgetId) {
                 return true
             }
@@ -268,6 +310,11 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
 
         list[itemKey] = item
 
+        if (item.widgetId != -1) {
+            removeWidgetField(item.id)
+            addWidgetField(position, item)
+        }
+
         itemList[key] = list
     }
 
@@ -291,6 +338,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         } else {
             android.util.Log.i("TESTEST","")
         }
+
     }
 
     fun getItem(position: Int, row: Int, column: Int): HomeItem? {
@@ -316,6 +364,39 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         return null
     }
 
+    fun getItem(ownerId: Int): HomeItem? {
+        val rowMax = if (cellPointName == CELL_POINT_NAME.DOCK) {
+            1
+        } else {
+            Global.ROW_COUNT
+        }
+
+
+        for(page in 0 until 5) {
+            val key = "" + page
+            val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+                HashMap<String, HomeItem>()
+            } else {
+                itemList[key]!!
+            }
+
+            for (rowId in 0 until rowMax) {
+                for (columnId in 0 until Global.COLUMN_COUNT) {
+                    val itemKey = "$rowId-$columnId"
+                    if (list.containsKey(itemKey)) {
+                        val item = list[itemKey]
+
+                        if (item != null && item.id == ownerId) {
+                            return item
+                        }
+                    }
+                }
+            }
+        }
+
+        return null
+    }
+
     fun checkEnableApp(packageName: String, name: String): Boolean {
 
         val keys = itemList.keys
@@ -335,4 +416,204 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
 
         return false
     }
+
+
+    fun addWidgetField(position: Int, item: HomeItem) {
+        val row = item.row
+        val column = item.column
+
+        val key = "" + position
+
+        val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+            HashMap<String, HomeItem>()
+        } else {
+            itemList[key]!!
+        }
+
+        if (item.fieldRow > 0 || item.fieldColumn > 0) {
+            for(rowId in row until (row + (item.fieldRow + 1))) {
+                for(columnId in column until (column + (item.fieldColumn + 1))) {
+                    if (rowId != row || columnId != column) {
+                        val fieldItemKey = "$rowId-$columnId"
+
+                        val fieldItem = item.copyField(rowId, columnId)
+
+                        list[fieldItemKey] = fieldItem
+
+                    }
+                }
+            }
+        }
+        itemList[key] = list
+    }
+
+    fun removeWidgetField(ownerId: Int) {
+        val rowMax = if (cellPointName == CELL_POINT_NAME.DOCK) {
+            1
+        } else {
+            Global.ROW_COUNT
+        }
+
+
+        for(page in 0 until 5) {
+            val key = "" + page
+            val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+                HashMap<String, HomeItem>()
+            } else {
+                itemList[key]!!
+            }
+
+            for (rowId in 0 until rowMax) {
+                for (columnId in 0 until Global.COLUMN_COUNT) {
+                    val itemKey = "$rowId-$columnId"
+                    if (list.containsKey(itemKey)) {
+                        val item = list[itemKey]
+
+                        if (item != null && item.ownerId == ownerId) {
+                            //removeHomeItem(page, rowId, columnId)
+                        }
+                    }
+                }
+            }
+        }
+
+
+    }
+
+    fun getWidgetFieldList(ownerId: Int): ArrayList<HomeItem> {
+        val homeItemList = ArrayList<HomeItem>()
+
+        val rowMax = if (cellPointName == CELL_POINT_NAME.DOCK) {
+            1
+        } else {
+            Global.ROW_COUNT
+        }
+
+
+        for(page in 0 until 5) {
+            val key = "" + page
+            val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+                HashMap<String, HomeItem>()
+            } else {
+                itemList[key]!!
+            }
+
+            for (rowId in 0 until rowMax) {
+
+                for (columnId in 0 until Global.COLUMN_COUNT) {
+                    val itemKey = "$rowId-$columnId"
+                    if (list.containsKey(itemKey)) {
+                        val item = list[itemKey]
+
+                        if (item != null && item.id != ownerId && item.ownerId == ownerId) {
+                            homeItemList.add(item)
+                        }
+                    }
+                }
+            }
+        }
+
+        return homeItemList
+    }
+
+    fun checkNotWidgetData(ownerId: Int): Boolean {
+        val rowMax = if (cellPointName == CELL_POINT_NAME.DOCK) {
+            1
+        } else {
+            Global.ROW_COUNT
+        }
+
+
+        for(page in 0 until 5) {
+            val key = "" + page
+            val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+                HashMap<String, HomeItem>()
+            } else {
+                itemList[key]!!
+            }
+
+            for (rowId in 0 until rowMax) {
+
+                for (columnId in 0 until Global.COLUMN_COUNT) {
+
+                    val itemKey = "$rowId-$columnId"
+                    if (list.containsKey(itemKey)) {
+                        val item = list[itemKey]
+
+                        if (item != null && item.id == ownerId) {
+                            return false
+                        }
+                    }
+                }
+            }
+        }
+
+        return true
+    }
+
+    /**
+     * 空白地帯があるかチェックする
+     */
+    private fun checkFieldSpace(item: HomeItem, page: Int, row: Int, column: Int):Boolean {
+        val key = "" + page
+
+        val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+            HashMap<String, HomeItem>()
+        } else {
+            itemList[key]!!
+        }
+
+        for(rowId in row until (row + item.fieldRow + 1)) {
+            for(columnId in column until (row + item.fieldColumn + 1)) {
+                val itemKey = "$rowId-$columnId"
+                if (list.containsKey(itemKey)) {
+                    return false
+                }
+            }
+        }
+
+        return true
+    }
+
+    /**
+     * 指定地点以降にWidgetがあるかチェックする
+     */
+    private fun checkWidgetOnCell(row: Int, column: Int): Boolean {
+        val rowMax = if (cellPointName == CELL_POINT_NAME.DOCK) {
+            1
+        } else {
+            Global.ROW_COUNT
+        }
+
+
+        for(page in 0 until 5) {
+            val key = "" + page
+            val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+                HashMap<String, HomeItem>()
+            } else {
+                itemList[key]!!
+            }
+
+            for (rowId in 0 until rowMax) {
+                if (rowId < row) continue
+
+                for (columnId in 0 until Global.COLUMN_COUNT) {
+                    if (rowId == row && columnId < column) continue
+
+                    val itemKey = "$rowId-$columnId"
+                    if (list.containsKey(itemKey)) {
+                        val item = list[itemKey]
+
+                        if (item != null && item.widgetId != -1) {
+                            return true
+                        }
+                    }
+                }
+            }
+        }
+
+        return false
+    }
+
+
 }

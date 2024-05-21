@@ -25,6 +25,10 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import net.mikemobile.android.view.CellLayout
 import net.mikemobile.mikelauncher.R
+import net.mikemobile.mikelauncher.constant.CellSize
+import net.mikemobile.mikelauncher.constant.Global
+import net.mikemobile.mikelauncher.constant.GridPoint
+import net.mikemobile.mikelauncher.constant.WidgetData
 import net.mikemobile.mikelauncher.data.HomeItem
 import net.mikemobile.mikelauncher.ui.custom.DragAndDropView
 
@@ -150,7 +154,7 @@ fun checkPosition(view: View, point: ArrayList<Float>): ArrayList<Float> {
     return point
 }
 
-fun getWidgetView(context: Context, mAppWidgetHost: AppWidgetHost, widgetId: Int): View? {
+fun getWidgetView(context: Context, mAppWidgetHost: AppWidgetHost, widgetId: Int): WidgetData? {
 
     val appWidgetProviderInfo2 =
         AppWidgetManager
@@ -165,13 +169,17 @@ fun getWidgetView(context: Context, mAppWidgetHost: AppWidgetHost, widgetId: Int
             null
         )
 
+
+        var widgetWidth = appWidgetProviderInfo2.minWidth
+        var widgetHeight = appWidgetProviderInfo2.minHeight
+
         var hostView = mAppWidgetHost.createView(context, widgetId, appWidgetProviderInfo2)
 
         //hostView.setMinimumHeight(appWidgetProviderInfo2.minHeight)
         if (Build.VERSION.SDK_INT > 15) {
-            //hostView.updateAppWidgetSize(null,
-            //    widgetWidth, appWidgetProviderInfo2.minHeight,
-            //    widgetHeight, appWidgetProviderInfo2.minHeight)
+            hostView.updateAppWidgetSize(null,
+                widgetWidth, appWidgetProviderInfo2.minHeight,
+                widgetHeight, appWidgetProviderInfo2.minHeight)
         }
         hostView.setAppWidget(widgetId, appWidgetProviderInfo2)
 
@@ -199,18 +207,30 @@ fun getWidgetView(context: Context, mAppWidgetHost: AppWidgetHost, widgetId: Int
 
         hostView.layoutParams = lp
 
-
-
         val columnLayout = getInnerLayout(context)
-
         columnLayout.addView(hostView)
 
-        return columnLayout
+        return WidgetData(columnLayout, widgetWidth, widgetHeight, widgetLabel)
+
+        //return columnLayout
     }catch(e: Exception) {
         Log.e("TESTTEST", "error:" + e.message)
 
     }
     return null
+}
+
+
+fun getView(context: Context,resourceId: Int): View? {
+    val layoutParams = LinearLayout.LayoutParams(
+        MATCH_PARENT,
+        MATCH_PARENT
+    )
+
+    val itemView = LayoutInflater.from(context).inflate(resourceId, null, false)
+    itemView.layoutParams = layoutParams
+
+    return itemView
 }
 
 private fun getInnerLayout(context: Context): LinearLayout {
@@ -371,4 +391,22 @@ fun checkPosition(view: View, point: DragAndDropView.DimensionPoint): DragAndDro
         return point
     }
 
+}
+
+fun getWidgetCellSize(cellSize: CellSize, width: Int, height: Int): GridPoint {
+    var rowCount = 0
+    var columnCount = 0
+
+    for(row in 0 until Global.ROW_COUNT) {
+        if (cellSize.height * (row + 1) <= height) {
+            rowCount = row + 1
+        }
+    }
+    for(column in 0 until Global.COLUMN_COUNT) {
+        if (cellSize.width * (column + 1) <= width) {
+            columnCount = column+ 1
+        }
+    }
+
+    return GridPoint(rowCount, columnCount)
 }

@@ -3,6 +3,7 @@ package net.mikemobile.mikelauncher.data
 import android.content.ComponentName
 import android.graphics.drawable.Drawable
 import android.view.View
+import net.mikemobile.mikelauncher.constant.Global
 
 data class HomeItem(
     var id: Int,
@@ -32,6 +33,15 @@ data class HomeItem(
 
     // Widget情報
     var widgetId: Int = -1
+    var width: Int = -1
+    var height: Int = -1
+
+    // Widgetのフィールド範囲を指定する（縦1,横2マス分なら　fieldRow:2 fieldColumn:1
+    var fieldRow = 1
+    var fieldColumn = 1
+
+    var widgetField = false // widgetのフィールド判定用
+    var ownerId: Int = -1
 
     // Tool
 
@@ -54,6 +64,17 @@ data class HomeItem(
         map["toolId"] = "" + toolId
         map["detail"] = "" + detail
         map["folderId"] = "" + folderId
+        map["width"] = "" + width
+        map["height"] = "" + height
+
+        if (widgetField) {
+            map["widgetField"] = "1"
+        } else {
+            map["widgetField"] = "0"
+        }
+        map["fieldRow"] = "" + fieldRow
+        map["fieldColumn"] = "" + fieldColumn
+        map["ownerId"] = "" + ownerId
 
         return map
     }
@@ -74,6 +95,17 @@ data class HomeItem(
         map["toolId"] = "" + toolId
         map["detail"] = "" + detail
         map["folderId"] = "" + folderId
+        map["width"] = "" + width
+        map["height"] = "" + height
+
+        if (widgetField) {
+            map["widgetField"] = "1"
+        } else {
+            map["widgetField"] = "0"
+        }
+        map["fieldRow"] = "" + fieldRow
+        map["fieldColumn"] = "" + fieldColumn
+        map["ownerId"] = "" + ownerId
 
         return map
     }
@@ -107,6 +139,25 @@ data class HomeItem(
             column = map["column"]!!.toInt()
         }
 
+        if (map.containsKey("width")) {
+            width = map["width"]!!.toInt()
+        }
+        if (map.containsKey("height")) {
+            height = map["height"]!!.toInt()
+        }
+        if (map.containsKey("widgetField")) {
+            widgetField = (map["widgetField"]!!.toInt() == 1)
+        }
+        if (map.containsKey("fieldRow")) {
+            fieldRow = map["fieldRow"]!!.toInt()
+        }
+        if (map.containsKey("fieldColumn")) {
+            fieldColumn = map["fieldColumn"]!!.toInt()
+        }
+        if (map.containsKey("ownerId")) {
+            ownerId = map["ownerId"]!!.toInt()
+        }
+
         if (map.containsKey("key")) {
             if (!map.containsKey("row") || !map.containsKey("column")) {
                 val parse = map["key"]!!.split("-")
@@ -114,6 +165,17 @@ data class HomeItem(
                 column = parse[1].toInt()
             }
         }
+    }
 
+
+    fun copyField(row: Int, column: Int): HomeItem{
+        val item = this.copy()
+        item.ownerId = id
+        item.id = Global.generateId()
+        item.row = row
+        item.column = column
+        item.widgetField = true
+
+        return item
     }
 }

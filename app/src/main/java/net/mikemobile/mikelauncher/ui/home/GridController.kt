@@ -6,13 +6,20 @@ import android.graphics.Color
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import androidx.constraintlayout.widget.ConstraintLayout
 import net.mikemobile.mikelauncher.R
+import net.mikemobile.mikelauncher.constant.CellSize
+import net.mikemobile.mikelauncher.constant.GridPoint
 
-class GridController(private val context: Context, private val position: Int, private val view: LinearLayout) {
+class GridController(
+    private val context: Context,
+    private val position: Int,
+    private val view: LinearLayout,
+    private val constraintLayout: ConstraintLayout,
+) {
 
     private var column: Int = 1
     private var row: Int = 1
-
 
 
     private var listener: GridControllListener? = null
@@ -21,94 +28,74 @@ class GridController(private val context: Context, private val position: Int, pr
     }
     interface GridControllListener {
         fun onGridPositionView(view: LinearLayout, position: Int, row: Int, column: Int)
+        fun onCellPositionView(view: LinearLayout, position: Int, row: Int, column: Int)
         fun onClickGrid(row: Int, column: Int)
         fun onLongClickGrid(view: View, row: Int, column: Int)
         fun onLongClickGridBlanc(row: Int, column: Int)
     }
 
-    private var layoutMemory = HashMap<String, LinearLayout>()
+    private var cellLayoutMemory = HashMap<String, LinearLayout>()
+
+    private var cellSize: CellSize = CellSize(-1f, -1f)
+    fun setCellSize(cellSize: CellSize) {
+        this.cellSize = cellSize
+
+    }
 
     @SuppressLint("ResourceType")
     fun setFrame(column: Int, row: Int) {
         this.column = column
         this.row = row
 
-        layoutMemory = HashMap<String, LinearLayout>()
+        cellLayoutMemory = HashMap<String, LinearLayout>()
 
-        // Row追加処理
         for(rowId in 0 until row) {
-            val rowLayout = LinearLayout(context)
-
-            val layoutParam = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                0,
-                1f
-            )
-
-            rowLayout.layoutParams = layoutParam
-            rowLayout.orientation = LinearLayout.HORIZONTAL
 
             // Column追加処理
             for(columnId in 0 until column) {
-                val columnLayout = LinearLayout(context)
+                val cellLayout = LinearLayout(context)
 
                 val layoutParam = LinearLayout.LayoutParams(
-                    0,
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    1f
+                    cellSize.width.toInt(),
+                    cellSize.height.toInt()
                 )
 
-                columnLayout.layoutParams = layoutParam
+                cellLayout.layoutParams = layoutParam
                 if (rowId % 2 == 0) {
                     if (columnId % 2 == 0) {
-                        columnLayout.setBackgroundColor(Color.BLACK)
+                        cellLayout.setBackgroundColor(Color.BLACK)
                     } else {
-                        columnLayout.setBackgroundColor(Color.BLUE)
+                        cellLayout.setBackgroundColor(Color.BLUE)
                     }
                 } else {
                     if (columnId % 2 == 0) {
-                        columnLayout.setBackgroundColor(Color.CYAN)
+                        cellLayout.setBackgroundColor(Color.CYAN)
                     } else {
-                        columnLayout.setBackgroundColor(Color.YELLOW)
+                        cellLayout.setBackgroundColor(Color.YELLOW)
                     }
                 }
-                columnLayout.setBackgroundResource(R.drawable.grid_frame)
+                cellLayout.setBackgroundResource(R.drawable.grid_frame)
 
-//                columnLayout.setOnClickListener {
-//                    listener?.onClickGrid(rowId, columnId)
-//                }
+                cellLayout.translationX = columnId * cellSize.width
+                cellLayout.translationY = rowId * cellSize.height
 
-//                columnLayout.setOnLongClickListener {
-//                    val parent = it as ViewGroup
-//                    val childCount = parent.childCount
-//                    if (childCount > 0) {
-//                        //listener?.onLongClickGrid(parent.getChildAt(0), rowId, columnId)
-//                        //parent.removeAllViews()
-//                    } else {
-//                        //listener?.onLongClickGridBlanc(rowId, columnId)
-//                    }
-//                    false
-//                }
+                listener?.onCellPositionView(cellLayout, position, rowId, columnId)
 
-                listener?.onGridPositionView(columnLayout, position, rowId, columnId)
+                constraintLayout.addView(cellLayout)
 
-                rowLayout.addView(columnLayout)
-
-                layoutMemory["$rowId-$columnId"] = columnLayout
+                cellLayoutMemory["$rowId-$columnId"] = cellLayout
             }
-
-            view.addView(rowLayout)
         }
     }
 
-    fun updateGrid(view: View, row: Int, column: Int): View? {
-        if (!layoutMemory.containsKey("$row-$column")) {
+    fun updateGrid(view: View, gridPoint: GridPoint, row: Int, column: Int): View? {
+        if (!cellLayoutMemory.containsKey("$row-$column")) {
             return null
         }
 
         var prevView: View? = null
 
-        layoutMemory["$row-$column"]?.let {
+        cellLayoutMemory["$row-$column"]?.let {
             if (it.childCount > 0) {
                 prevView = it.getChildAt(0)
             }
@@ -120,41 +107,45 @@ class GridController(private val context: Context, private val position: Int, pr
 
             it.removeAllViews()
             it.addView(view)
+
+            it.layoutParams.width = (cellSize.width * (gridPoint.column + 1)).toInt()
+            it.layoutParams.height = (cellSize.height * (gridPoint.row + 1)).toInt()
+
         }
 
         return prevView
     }
 
     fun reloadGrid(row: Int, column: Int) {
-        if (!layoutMemory.containsKey("$row-$column")) {
+
+        if (!cellLayoutMemory.containsKey("$row-$column")) {
             return
         }
 
-        layoutMemory["$row-$column"]?.let {
+        cellLayoutMemory["$row-$column"]?.let {
             it.invalidate()
         }
     }
 
     fun clearGrid(row: Int, column: Int) {
-        if (!layoutMemory.containsKey("$row-$column")) {
+        if (!cellLayoutMemory.containsKey("$row-$column")) {
             return
         }
 
-        layoutMemory["$row-$column"]?.let {
+        cellLayoutMemory["$row-$column"]?.let {
             if (it.childCount > 0) {
                 it.removeAllViews()
             }
         }
-
     }
 
 
     fun updateGridFrame(row: Int, column: Int, select: Boolean) {
-        if (!layoutMemory.containsKey("$row-$column")) {
+        if (!cellLayoutMemory.containsKey("$row-$column")) {
             return
         }
 
-        layoutMemory["$row-$column"]?.let {
+        cellLayoutMemory["$row-$column"]?.let {
             if (select) {
                 it.setBackgroundResource(R.drawable.grid_frame_select)
             } else {
@@ -164,11 +155,12 @@ class GridController(private val context: Context, private val position: Int, pr
     }
 
     fun getGridInlineView(row: Int, column: Int): View? {
-        if (!layoutMemory.containsKey("$row-$column")) {
+
+        if (!cellLayoutMemory.containsKey("$row-$column")) {
             return null
         }
 
-        layoutMemory["$row-$column"]?.let {
+        cellLayoutMemory["$row-$column"]?.let {
             if (it.childCount > 0) {
                 return it.getChildAt(0)
             }
