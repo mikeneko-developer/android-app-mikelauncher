@@ -13,8 +13,10 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.constraintlayout.widget.ConstraintLayout
 import net.mikemobile.mikelauncher.constant.CELL_POINT_NAME
-import net.mikemobile.mikelauncher.constant.CellSize
+import net.mikemobile.mikelauncher.constant.DimenPoint
+import net.mikemobile.mikelauncher.constant.GridSize
 import net.mikemobile.mikelauncher.constant.GridPoint
+import net.mikemobile.mikelauncher.constant.ViewSize
 import net.mikemobile.mikelauncher.util.processImageToFill
 
 class DragAndDropView: ConstraintLayout {
@@ -52,7 +54,7 @@ class DragAndDropView: ConstraintLayout {
     var row: Int = -1
     var dotHeight = -1
     var calcEnable = false
-    var oneCellSize = CellSize(-1f,-1f)
+    var oneCellSize = ViewSize(-1f,-1f)
 
     //
     var cellPointName: CELL_POINT_NAME = CELL_POINT_NAME.NONE
@@ -99,7 +101,7 @@ class DragAndDropView: ConstraintLayout {
         val oneWidth = measuredWidth.toFloat() / column
         val oneHeight = (measuredHeight - dotHeight.toFloat()) / (row + 1)
 
-        oneCellSize = CellSize(oneWidth, oneHeight)
+        oneCellSize = ViewSize(oneWidth, oneHeight)
 
         calcEnable = true
         return true
@@ -109,16 +111,16 @@ class DragAndDropView: ConstraintLayout {
 
 
     var data: Bitmap? = null
-    var iconPoint: DimensionPoint? = null
-    fun setDragImage(data: Bitmap?, point: DimensionPoint?) {
+    var iconPoint: DimenPoint? = null
+    fun setDragImage(data: Bitmap?, point: DimenPoint?) {
         android.util.Log.i(TAG,"setDragImage")
         android.util.Log.i(TAG,"Bitmap is null = " + (data == null))
-        android.util.Log.i(TAG,"DimensionPoint is null = " + (point == null))
+        android.util.Log.i(TAG,"DimenPoint is null = " + (point == null))
         this.data = data
         this.iconPoint = point
 
         downPosition?.let {
-            listener?.onTouchMove(DimensionPoint(it.x, it.y))
+            listener?.onTouchMove(DimenPoint(it.x, it.y))
         }
 
         data?.let {
@@ -131,7 +133,7 @@ class DragAndDropView: ConstraintLayout {
         invalidate()
     }
 
-    fun getPoint(): DimensionPoint? {
+    fun getPoint(): DimenPoint? {
         return movePosition
     }
 
@@ -145,7 +147,7 @@ class DragAndDropView: ConstraintLayout {
         this.lowerDockView = view
     }
 
-    fun getGridSize(): CellSize {
+    fun getCellSize(): ViewSize {
         return oneCellSize
     }
 
@@ -185,7 +187,7 @@ class DragAndDropView: ConstraintLayout {
 
 //        android.util.Log.i(TAG,"dispatchDraw")
 //        android.util.Log.i(TAG,"Bitmap is null = " + (data == null))
-//        android.util.Log.i(TAG,"DimensionPoint is null = " + (iconPoint == null))
+//        android.util.Log.i(TAG,"DimenPoint is null = " + (iconPoint == null))
 
 
         if (oneCellSize.width != -1f && oneCellSize.height != -1f) {
@@ -281,7 +283,7 @@ class DragAndDropView: ConstraintLayout {
 
                 startTimer()
                 onDownTime = System.currentTimeMillis()
-                listener?.onTouchDown(DimensionPoint(motionEvent.x, motionEvent.y))
+                listener?.onTouchDown(DimenPoint(motionEvent.x, motionEvent.y))
             }
             MotionEvent.ACTION_MOVE -> {
 
@@ -302,7 +304,7 @@ class DragAndDropView: ConstraintLayout {
                 if (onTouchMoveEnable || data != null && checkMinMove()) {
                     onTouchMoveEnable = true
                     android.util.Log.i(TAG,"ACTION_MOVE")
-                    listener?.onTouchMove(DimensionPoint(motionEvent.x, motionEvent.y))
+                    listener?.onTouchMove(DimenPoint(motionEvent.x, motionEvent.y))
                     invalidate()
                 }
 
@@ -320,11 +322,11 @@ class DragAndDropView: ConstraintLayout {
                 android.util.Log.i(TAG,"tapTime : " + tapTime)
                 if (!checkMinMove() && ( 30 < tapTime && tapTime <= 130)) {
                     android.util.Log.i(TAG,"ACTION_CLICK")
-                    listener?.onTouchClick(cellPointName, DimensionPoint(motionEvent.x, motionEvent.y))
+                    listener?.onTouchClick(cellPointName, DimenPoint(motionEvent.x, motionEvent.y))
                 }
 
                 if (data != null) {
-                    listener?.onTouchUp(cellPointName, DimensionPoint(motionEvent.x, motionEvent.y))
+                    listener?.onTouchUp(cellPointName, DimenPoint(motionEvent.x, motionEvent.y))
                     clear = true
                 }
             }
@@ -377,16 +379,14 @@ class DragAndDropView: ConstraintLayout {
         invalidate()
     }
 
-    data class DimensionPoint(var x: Float, var y: Float)
-
     var touchAction = MotionEvent.ACTION_CANCEL
-    var downPosition: DimensionPoint? = null
+    var downPosition: DimenPoint? = null
 
     private fun touchPoint(motionEvent: MotionEvent) {
         touchAction = motionEvent.action
         when (motionEvent.action) {
             MotionEvent.ACTION_DOWN -> {
-                downPosition = DimensionPoint(motionEvent.x, motionEvent.y)
+                downPosition = DimenPoint(motionEvent.x, motionEvent.y)
                 movePoint(motionEvent)
             }
             MotionEvent.ACTION_MOVE -> {
@@ -401,10 +401,10 @@ class DragAndDropView: ConstraintLayout {
         }
     }
 
-    var movePosition: DimensionPoint? = null
+    var movePosition: DimenPoint? = null
     private fun movePoint(motionEvent: MotionEvent) {
         downPosition?.let {
-            movePosition = DimensionPoint(motionEvent.x - it.x, motionEvent.y - it.y)
+            movePosition = DimenPoint(motionEvent.x - it.x, motionEvent.y - it.y)
         }
     }
 
@@ -413,7 +413,7 @@ class DragAndDropView: ConstraintLayout {
         return checkMinMove(movePosition!!)
     }
 
-    private fun checkMinMove(movePosition: DimensionPoint): Boolean {
+    private fun checkMinMove(movePosition: DimenPoint): Boolean {
         if (oneCellSize.width == -1f || oneCellSize.height == -1f) return false
 
         val border = oneCellSize.width / 2f
@@ -470,11 +470,11 @@ class DragAndDropView: ConstraintLayout {
 
     interface OnDragAndDropViewListener {
         fun onDisplayEnable(width: Int, height: Int)
-        fun onTouchDown(point: DimensionPoint)
-        fun onTouchMove(point: DimensionPoint)
-        fun onTouchUp(cellPointName: CELL_POINT_NAME, point: DimensionPoint)
-        fun onTouchClick(cellPointName: CELL_POINT_NAME, point: DimensionPoint)
-        fun onLongTouchDown(cellPointName: CELL_POINT_NAME, point: DimensionPoint)
+        fun onTouchDown(point: DimenPoint)
+        fun onTouchMove(point: DimenPoint)
+        fun onTouchUp(cellPointName: CELL_POINT_NAME, point: DimenPoint)
+        fun onTouchClick(cellPointName: CELL_POINT_NAME, point: DimenPoint)
+        fun onLongTouchDown(cellPointName: CELL_POINT_NAME, point: DimenPoint)
         fun onSelectGridPoint(gridPoint: GridPoint?, cellPointName: CELL_POINT_NAME, action: Int)
     }
 

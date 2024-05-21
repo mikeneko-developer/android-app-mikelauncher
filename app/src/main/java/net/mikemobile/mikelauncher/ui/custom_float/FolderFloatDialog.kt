@@ -10,9 +10,9 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import net.mikemobile.mikelauncher.R
+import net.mikemobile.mikelauncher.constant.DimenPoint
 import net.mikemobile.mikelauncher.data.HomeItem
-import net.mikemobile.mikelauncher.ui.custom.DragAndDropView
-import net.mikemobile.mikelauncher.ui.home.checkPosition
+import net.mikemobile.mikelauncher.ui.home.checkDisplayToPosition
 import net.mikemobile.mikelauncher.ui.home.createFolderInItemListView
 import net.mikemobile.mikelauncher.ui.home.displaySize
 import net.mikemobile.mikelauncher.ui.home.folder.FolderAdapter
@@ -23,7 +23,7 @@ class FolderFloatDialog(
     private val list: ArrayList<HomeItem>,
     private val callback: (HomeItem) -> Unit,
     private val callbackEditTitle: (HomeItem) -> Unit,
-    private val callbackLongClick: (View, DragAndDropView.DimensionPoint, HomeItem) -> Unit,
+    private val callbackLongClick: (View, DimenPoint, HomeItem) -> Unit,
     close:() -> Unit) : BaseFloatingDialog(context, close) {
 
     override fun onCreate(context: Context): View? {
@@ -47,7 +47,7 @@ class FolderFloatDialog(
             callback.invoke(it)
         }) { view, selectItem ->
 
-            var point = checkPosition(view)
+            var point = checkDisplayToPosition(view)
 
             callbackLongClick.invoke(view, point, selectItem)
         }

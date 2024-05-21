@@ -1,6 +1,7 @@
 package net.mikemobile.mikelauncher.constant
 
 import net.mikemobile.mikelauncher.data.HomeItem
+import net.mikemobile.mikelauncher.ui.home.HomeFragment
 
 class DataManagement(private val cellPointName: CELL_POINT_NAME) {
 
@@ -54,25 +55,25 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
             list[itemKey] = item
             itemList[key] = list
 
-            if (item.fieldRow > 1 || item.fieldColumn > 1) {
-                for(rowId in row until (row + item.fieldRow)) {
-                    for(columnId in column until (column + item.fieldColumn)) {
-                        if (rowId != row || columnId != column) {
-                            val fieldItemKey = "$rowId-$columnId"
+//            if (item.fieldRow > 1 || item.fieldColumn > 1) {
+//                for(rowId in row until (row + item.fieldRow)) {
+//                    for(columnId in column until (column + item.fieldColumn)) {
+//                        if (rowId != row || columnId != column) {
+//                            val fieldItemKey = "$rowId-$columnId"
+//
+//                            val fieldItem = item.copyField(rowId, columnId)
+//                            list[fieldItemKey] = fieldItem
+//                            itemList[key] = list
+//                        }
+//                    }
+//                }
+//            }
 
-                            val fieldItem = item.copyField(rowId, columnId)
-                            list[fieldItemKey] = fieldItem
-                            itemList[key] = list
-                        }
-                    }
-                }
-            }
 
-            return true
         } else {
             return false
         }
-
+        return true
     }
 
 
@@ -113,6 +114,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
                 //addWidgetField(position, item)
             }
 
+            return ITEM_MOVE.MOVING_ITEM_ENABLED
 
         } else {
             // データある場合
@@ -213,7 +215,20 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
 
         if (list.containsKey(addItemKey)) {
             val item = list[addItemKey]
-            if (item!!.toolId == 2 && item!!.id != homeItem.id) {
+
+            android.util.Log.i(HomeFragment.TAG,"checkToolToFolder >> homeItem.id :" + homeItem!!.id)
+            android.util.Log.i(HomeFragment.TAG,"checkToolToFolder >> homeItem.homeName :" + homeItem!!.homeName)
+            android.util.Log.i(HomeFragment.TAG,"checkToolToFolder >> homeItem.label :" + homeItem!!.label)
+            android.util.Log.i(HomeFragment.TAG,"checkToolToFolder >> homeItem.type :" + homeItem!!.type)
+            android.util.Log.i(HomeFragment.TAG,"checkToolToFolder >> homeItem.toolId :" + homeItem!!.toolId)
+
+            android.util.Log.i(HomeFragment.TAG,"checkToolToFolder >> id :" + item!!.id)
+            android.util.Log.i(HomeFragment.TAG,"checkToolToFolder >> homeName :" + item!!.homeName)
+            android.util.Log.i(HomeFragment.TAG,"checkToolToFolder >> label :" + item!!.label)
+            android.util.Log.i(HomeFragment.TAG,"checkToolToFolder >> type :" + item!!.type)
+            android.util.Log.i(HomeFragment.TAG,"checkToolToFolder >> toolId :" + item!!.toolId)
+
+            if (item!!.type == 2 && item!!.toolId == 2) {
                 return true
             }
         }
@@ -469,7 +484,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
                     if (list.containsKey(itemKey)) {
                         val item = list[itemKey]
 
-                        if (item != null && item.firldId == ownerId) {
+                        if (item != null && item.fieldId == ownerId) {
                             //removeHomeItem(page, rowId, columnId)
                         }
                     }
@@ -505,7 +520,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
                     if (list.containsKey(itemKey)) {
                         val item = list[itemKey]
 
-                        if (item != null && item.id != ownerId && item.firldId == ownerId) {
+                        if (item != null && item.id != ownerId && item.fieldId == ownerId) {
                             homeItemList.add(item)
                         }
                     }

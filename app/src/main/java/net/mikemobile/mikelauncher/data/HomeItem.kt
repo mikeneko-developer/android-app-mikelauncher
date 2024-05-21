@@ -3,6 +3,7 @@ package net.mikemobile.mikelauncher.data
 import android.content.Context
 import android.graphics.drawable.Drawable
 import net.mikemobile.mikelauncher.constant.Global
+import net.mikemobile.mikelauncher.constant.GridCount
 import net.mikemobile.mikelauncher.constant.GridPoint
 import net.mikemobile.mikelauncher.constant.WidgetData
 import net.mikemobile.mikelauncher.ui.applist.AppInfo
@@ -42,7 +43,7 @@ data class HomeItem(
     var height: Int = -1
 
     // Widgtの範囲を埋めるための変数
-    var firldId: Int = -1
+    var fieldId: Int = -1
     var widgetField = false // widgetのフィールド判定用
 
     // Widgetのフィールド範囲を指定する（縦1,横2マス分なら　fieldRow:2 fieldColumn:1
@@ -76,7 +77,7 @@ data class HomeItem(
         }
         map["fieldRow"] = "" + fieldRow
         map["fieldColumn"] = "" + fieldColumn
-        map["firldId"] = "" + firldId
+        map["fieldId"] = "" + fieldId
 
         return map
     }
@@ -107,7 +108,7 @@ data class HomeItem(
         }
         map["fieldRow"] = "" + fieldRow
         map["fieldColumn"] = "" + fieldColumn
-        map["firldId"] = "" + firldId
+        map["fieldId"] = "" + fieldId
 
         return map
     }
@@ -156,8 +157,8 @@ data class HomeItem(
         if (map.containsKey("fieldColumn")) {
             fieldColumn = map["fieldColumn"]!!.toInt()
         }
-        if (map.containsKey("firldId")) {
-            firldId = map["firldId"]!!.toInt()
+        if (map.containsKey("fieldId")) {
+            fieldId = map["fieldId"]!!.toInt()
         }
 
         if (map.containsKey("key")) {
@@ -172,7 +173,7 @@ data class HomeItem(
 
     fun copyField(row: Int, column: Int): HomeItem{
         val item = this.copy()
-        item.firldId = id
+        item.fieldId = id
         item.id = Global.generateId()
         item.row = row
         item.column = column
@@ -182,7 +183,7 @@ data class HomeItem(
     }
 
     companion object {
-        fun createWidget(widgetId: Int, widgetData: WidgetData, gridPoint: GridPoint): HomeItem {
+        fun createWidget(widgetId: Int, widgetData: WidgetData, gridCount: GridCount): HomeItem {
             val homeItem = HomeItem(
                 Global.generateId(),
                 "",
@@ -198,8 +199,8 @@ data class HomeItem(
             homeItem.widgetId = widgetId
             homeItem.width = widgetData.width
             homeItem.height = widgetData.height
-            homeItem.fieldRow = gridPoint.row
-            homeItem.fieldColumn = gridPoint.column
+            homeItem.fieldRow = gridCount.rowCount
+            homeItem.fieldColumn = gridCount.columnCount
 
             return homeItem
         }
@@ -226,14 +227,14 @@ data class HomeItem(
 
         fun crateItem(context: Context, info: AppInfo): HomeItem {
             val homeItem = HomeItem(
-                Global.generateId(),
-                info.label,
-                null,
-                0,
-                Global.getAppIcon(context, info.packageName),
-                info.label,
-                info.packageName,
-                info.name,
+                id = Global.generateId(),
+                homeName = info.label,
+                image = null,
+                type = 0,
+                icon = Global.getAppIcon(context, info.packageName),
+                label = info.label,
+                packageName = info.packageName,
+                name = info.name,
             )
 
             return homeItem

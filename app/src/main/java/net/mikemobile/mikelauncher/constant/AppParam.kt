@@ -23,9 +23,11 @@ enum class ITEM_MOVE {
 
 }
 
-data class CellSize(var width: Float, var height: Float)
-data class DimenPoint(val x: Float, val y: Float)
+data class ViewSize(var width: Float, var height: Float)
+data class GridSize(var width: Float, var height: Float)
+data class DimenPoint(var x: Float, var y: Float)
 data class GridPoint(var row: Int, var column: Int)
+data class GridCount(var rowCount: Int, var columnCount: Int)
 data class WidgetData(
     var view: View,
     var width: Int,

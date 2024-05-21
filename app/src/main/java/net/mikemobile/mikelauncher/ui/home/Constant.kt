@@ -5,8 +5,6 @@ import android.app.Activity
 import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetManager
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Color
 import android.os.Build
 import android.util.DisplayMetrics
 import android.util.Log
@@ -17,20 +15,19 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-import android.view.ViewParent
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import net.mikemobile.android.view.CellLayout
 import net.mikemobile.mikelauncher.R
-import net.mikemobile.mikelauncher.constant.CellSize
+import net.mikemobile.mikelauncher.constant.DimenPoint
+import net.mikemobile.mikelauncher.constant.GridSize
 import net.mikemobile.mikelauncher.constant.Global
+import net.mikemobile.mikelauncher.constant.GridCount
 import net.mikemobile.mikelauncher.constant.GridPoint
 import net.mikemobile.mikelauncher.constant.WidgetData
 import net.mikemobile.mikelauncher.data.HomeItem
-import net.mikemobile.mikelauncher.ui.custom.DragAndDropView
 
 
 @SuppressLint("InflateParams")
@@ -140,18 +137,6 @@ fun getRowColumnToPosition(row: Int, column: Int): Int {
         }
     }
     return lastPosi
-}
-
-fun checkPosition(view: View, point: ArrayList<Float>): ArrayList<Float> {
-    val parentView = view.parent as? ViewGroup
-    if (parentView != null) {
-        point[0] += parentView.x
-        point[1] += parentView.y
-
-        return checkPosition(parentView, point)
-    }
-
-    return point
 }
 
 fun getWidgetView(context: Context, mAppWidgetHost: AppWidgetHost, widgetId: Int): WidgetData? {
@@ -363,37 +348,23 @@ fun hideKeyboard(context: Context) {
 /**
  * Viewから座標を取得する
  */
-fun checkPosition(view: View): DragAndDropView.DimensionPoint {
-    return checkPosition(view, DragAndDropView.DimensionPoint(view.x, view.y))
+fun checkDisplayToPosition(view: View): DimenPoint {
+    return checkDisplayToPosition(view, DimenPoint(view.x, view.y))
 }
-fun checkPosition(view: View, point: DragAndDropView.DimensionPoint): DragAndDropView.DimensionPoint {
+fun checkDisplayToPosition(view: View, point: DimenPoint): DimenPoint {
+    val parentView = view.parent as? ViewGroup
+    if (parentView != null) {
+        point.x += parentView.x
+        point.x += parentView.y
 
-    android.util.Log.i("checkPosition","checkPosition >>>>")
-    android.util.Log.i("checkPosition","prev point x:"+point.x + " / y" + point.y)
-    android.util.Log.i("checkPosition","     view  x:"+view.x + " / y" + view.y)
-
-    point.x += view.x
-    point.y += view.y
-
-    android.util.Log.i("checkPosition","next point x:"+point.x + " / y" + point.y)
-
-
-    if (view.parent == null) {
-        return point
+        return checkDisplayToPosition(parentView, point)
     }
 
-    try {
-        val parent = view.parent as ViewGroup
-
-        return checkPosition(parent, point)
-    } catch(e: Exception) {
-        android.util.Log.e("ERROR","" + e.toString())
-        return point
-    }
-
+    return point
 }
 
-fun getWidgetCellSize(cellSize: CellSize, width: Int, height: Int): GridPoint {
+
+fun getWidgetViewPoint(cellSize: GridSize, width: Int, height: Int): GridCount {
     var rowCount = 0
     var columnCount = 0
 
@@ -408,5 +379,5 @@ fun getWidgetCellSize(cellSize: CellSize, width: Int, height: Int): GridPoint {
         }
     }
 
-    return GridPoint(rowCount, columnCount)
+    return GridCount(rowCount, columnCount)
 }

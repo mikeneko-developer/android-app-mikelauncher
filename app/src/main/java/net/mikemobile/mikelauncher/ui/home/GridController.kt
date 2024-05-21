@@ -8,13 +8,13 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import net.mikemobile.mikelauncher.R
-import net.mikemobile.mikelauncher.constant.CellSize
+import net.mikemobile.mikelauncher.constant.GridCount
+import net.mikemobile.mikelauncher.constant.GridSize
 import net.mikemobile.mikelauncher.constant.GridPoint
 
 class GridController(
     private val context: Context,
-    private val position: Int,
-    private val view: LinearLayout,
+    private val page: Int,
     private val constraintLayout: ConstraintLayout,
 ) {
 
@@ -36,8 +36,8 @@ class GridController(
 
     private var cellLayoutMemory = HashMap<String, LinearLayout>()
 
-    private var cellSize: CellSize = CellSize(-1f, -1f)
-    fun setCellSize(cellSize: CellSize) {
+    private var cellSize: GridSize = GridSize(-1f, -1f)
+    fun setCellSize(cellSize: GridSize) {
         this.cellSize = cellSize
 
     }
@@ -79,7 +79,7 @@ class GridController(
                 cellLayout.translationX = columnId * cellSize.width
                 cellLayout.translationY = rowId * cellSize.height
 
-                listener?.onCellPositionView(cellLayout, position, rowId, columnId)
+                listener?.onCellPositionView(cellLayout, page, rowId, columnId)
 
                 constraintLayout.addView(cellLayout)
 
@@ -88,9 +88,35 @@ class GridController(
         }
     }
 
-    fun updateGrid(view: View, gridPoint: GridPoint, row: Int, column: Int): View? {
+
+    fun addGrid(view: View, gridCount: GridCount, row: Int, column: Int): View? {
+
+        var prevView: View? = null
+
+        cellLayoutMemory["$row-$column"]?.let {
+            if (it.childCount > 0) {
+                it.removeAllViews()
+            }
+
+            view.getParent()?.let {
+                val parent = it as ViewGroup
+                parent.removeAllViews()
+            }
+
+            it.removeAllViews()
+            it.addView(view)
+
+            it.layoutParams.width = (cellSize.width * (gridCount.columnCount)).toInt()
+            it.layoutParams.height = (cellSize.height * (gridCount.rowCount)).toInt()
+
+        }
+
+        return prevView
+    }
+
+    fun updateGrid(view: View, gridCount: GridCount, row: Int, column: Int): View? {
         if (!cellLayoutMemory.containsKey("$row-$column")) {
-            return null
+            return addGrid(view, gridCount, row, column)
         }
 
         var prevView: View? = null
@@ -108,8 +134,8 @@ class GridController(
             it.removeAllViews()
             it.addView(view)
 
-            it.layoutParams.width = (cellSize.width * (gridPoint.column + 1)).toInt()
-            it.layoutParams.height = (cellSize.height * (gridPoint.row + 1)).toInt()
+            it.layoutParams.width = (cellSize.width * (gridCount.columnCount)).toInt()
+            it.layoutParams.height = (cellSize.height * (gridCount.rowCount)).toInt()
 
         }
 
@@ -168,5 +194,6 @@ class GridController(
 
         return null
     }
+
 
 }

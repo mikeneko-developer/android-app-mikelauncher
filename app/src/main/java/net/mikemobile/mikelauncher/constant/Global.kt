@@ -12,6 +12,7 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.MutableLiveData
 import net.mikemobile.mikelauncher.data.HomeItem
 import net.mikemobile.mikelauncher.ui.applist.AppInfo
+import net.mikemobile.mikelauncher.ui.home.HomeFragment
 import java.util.UUID
 
 
@@ -26,7 +27,63 @@ class Global {
         val dockItemData = DataManagement(CELL_POINT_NAME.DOCK)
         val folderManager = FolderManagement()
 
+        val gridSize: GridSize = GridSize(-1f, -1f)
+
         var selectItem: MutableLiveData<HomeItem> = MutableLiveData<HomeItem>(null)
+
+        /**
+         * 座標から位置をGridの位置を取得する
+         */
+        fun calcDimenToGridPoint(width: Int, height: Int): GridPoint {
+            return calcDimenToGridPoint(DimenPoint(width.toFloat(), height.toFloat()))
+        }
+        fun calcDimenToGridPoint(width: Float, height: Float): GridPoint {
+            return calcDimenToGridPoint(DimenPoint(width, height))
+        }
+        fun calcDimenToGridPoint(point: DimenPoint): GridPoint {
+
+            val oneWidth = gridSize.width
+            val oneHeight = gridSize.height
+
+            val column = (point.x / oneWidth).toInt()
+            val row = (point.y / oneHeight).toInt()
+
+            return GridPoint(row, column)
+        }
+
+        fun calcSizeToGridCount(width: Int, height: Int): GridCount {
+            var rowCount = 1
+            var columnCount = 1
+
+            android.util.Log.i(HomeFragment.TAG,
+                "Global.calcSizeToGridPoint >> widgetData width:" + width + " height:" + height)
+
+
+            for(row in 0 until Global.ROW_COUNT) {
+                val gridHeight = gridSize.height * (row + 1)
+                android.util.Log.i(HomeFragment.TAG,"Global.calcSizeToGridPoint >> widgetData gridHeight:" + gridHeight)
+
+                if (height <= gridHeight) {
+                    rowCount = row + 1
+                    break
+                }
+            }
+            for(column in 0 until Global.COLUMN_COUNT) {
+                val gridwidth = gridSize.width * (column + 1)
+                android.util.Log.i(HomeFragment.TAG,"Global.calcSizeToGridPoint >> widgetData gridwidth:" + gridwidth)
+
+                if (width <= gridwidth) {
+                    columnCount = column + 1
+                    break
+                }
+            }
+            android.util.Log.i(HomeFragment.TAG,
+                "Global.calcSizeToGridPoint >> GridCount rowCount:" + rowCount + " columnCount:" + columnCount)
+
+            return GridCount(rowCount, columnCount)
+        }
+
+
 
         fun updateItem(folder: HomeItem) {
 

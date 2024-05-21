@@ -1,7 +1,7 @@
 package net.mikemobile.mikelauncher.ui.home
 
 import android.view.MotionEvent
-import net.mikemobile.mikelauncher.constant.CellSize
+import net.mikemobile.mikelauncher.constant.GridSize
 import net.mikemobile.mikelauncher.ui.custom.DragAndDropView
 
 class CellCalcCallback: DragAndDropView.OnDragAndDropViewCallback {
@@ -15,7 +15,7 @@ class CellCalcCallback: DragAndDropView.OnDragAndDropViewCallback {
     var row: Int = -1
     var dotHeight = -1f
     var calcEnable = false
-    var oneCellSize = CellSize(-1f,-1f)
+    var oneCellSize = GridSize(-1f,-1f)
 
 
     override fun onTouchEvent(motionEvent: MotionEvent): Boolean {

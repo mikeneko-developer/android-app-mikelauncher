@@ -12,11 +12,12 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import net.mikemobile.mikelauncher.R
 import net.mikemobile.mikelauncher.constant.CELL_POINT_NAME
-import net.mikemobile.mikelauncher.constant.CellSize
+import net.mikemobile.mikelauncher.constant.DimenPoint
+import net.mikemobile.mikelauncher.constant.GridSize
 import net.mikemobile.mikelauncher.constant.Global
+import net.mikemobile.mikelauncher.constant.GridCount
 import net.mikemobile.mikelauncher.constant.GridPoint
 import net.mikemobile.mikelauncher.data.HomeItem
-import net.mikemobile.mikelauncher.ui.custom.DragAndDropView
 import net.mikemobile.mikelauncher.util.getViewCapture
 
 class GridViewHolder(itemView: View): RecyclerView.ViewHolder(itemView)
@@ -49,7 +50,7 @@ class GridAdapter(
 
     private var page: Int = 0
     private var enableViewSize = false
-    private var cellSize: CellSize = CellSize(-1f, -1f)
+    private var cellSize: GridSize = GridSize(-1f, -1f)
 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GridViewHolder {
@@ -59,17 +60,22 @@ class GridAdapter(
 
     override fun onBindViewHolder(holder: GridViewHolder, position: Int) {
 
-        val layout = holder.itemView.findViewById(R.id.grid_frame) as LinearLayout
         val constraintLayout = holder.itemView.findViewById(R.id.constraint_grid_frame) as ConstraintLayout
-        val page = GridController(context, position, layout, constraintLayout)
-        page.setOnGridControllListener(this)
+
+        var page: GridController? = null
+        if (constraintLayout?.tag == null) {
+            page = GridController(context, position, constraintLayout)
+            page.setOnGridControllListener(this)
+        } else {
+            page = constraintLayout?.tag as GridController
+        }
 
         if (cellSize.width != -1f && cellSize.height != -1f) {
             page.setCellSize(cellSize)
             page.setFrame(columnCount, rowCount)
         }
 
-        layout.tag = page
+        constraintLayout.tag = page
 
     }
 
@@ -78,21 +84,17 @@ class GridAdapter(
         return pageSize
     }
 
-    fun setCellSize(cellSize: CellSize) {
+    fun setCellSize(cellSize: GridSize) {
         this.cellSize = cellSize
         enableViewSize = true
 
         this.notifyDataSetChanged()
     }
 
-    fun getCellSize(): CellSize {
-        return cellSize
-    }
 
-
-    fun addGrid(view: View, gridPoint: GridPoint, item: HomeItem) {
+    fun addGrid(view: View, gridCount: GridCount, item: HomeItem) {
         getPositionLayoutGridController(page)?.let {page ->
-            page.updateGrid(view, gridPoint, item.row, item.column)
+            page.updateGrid(view, gridCount, item.row, item.column)
         }
     }
 
@@ -114,7 +116,7 @@ class GridAdapter(
         if (viewHolder is GridViewHolder) {
             val myViewHolder: GridViewHolder? = viewHolder as GridViewHolder?
             myViewHolder?.let {
-                val layout = it.itemView.findViewById(R.id.grid_frame) as LinearLayout
+                val layout = it.itemView.findViewById(R.id.constraint_grid_frame) as ConstraintLayout
 
                 layout.tag?.let {
                     val page = it as GridController
@@ -133,8 +135,10 @@ class GridAdapter(
 
     override fun onCellPositionView(view: LinearLayout, position: Int, row: Int, column: Int) {
         listener.onCellPositionView(viewType, view, position, row, column)
-    }
 
+
+
+    }
 
     override fun onClickGrid(row: Int, column: Int) {
         if (isLongClick) {
@@ -145,19 +149,16 @@ class GridAdapter(
         listener.onClickOpenApp(viewType, page, row, column)
     }
 
-
     private var isLongClick = false
 
     override fun onLongClickGrid(view: View, row: Int, column: Int) {
         isLongClick = true
 
-        val point = ArrayList<Float>()
-        point.add(view.x)
-        point.add(view.y)
+        val point = DimenPoint(view.x, view.y)
 
-        val lastPoint = checkPosition(view, point)
-        val positionX = lastPoint[0]
-        val positionY = lastPoint[1]
+        val lastPoint = checkDisplayToPosition(view, point)
+        val positionX = lastPoint.x
+        val positionY = lastPoint.y
 
         android.util.Log.i(TAG,"positionX:" + positionX)
         android.util.Log.i(TAG,"positionY:" + positionY)
@@ -175,7 +176,7 @@ class GridAdapter(
         //listener.onLongClickToBlanc(row, column)
     }
 
-    fun getGridPoint(newPoint: DragAndDropView.DimensionPoint): GridPoint {
+    fun getGridPoint(newPoint: DimenPoint): GridPoint {
         val oneWidth = viewPager.width / columnCount
         val oneHeight = viewPager.height / rowCount
 
@@ -185,19 +186,19 @@ class GridAdapter(
         return GridPoint(row, column)
     }
 
-    fun selectItem(view: View, gridPoint: GridPoint, row: Int, column: Int, moveItem: Boolean) {
+    fun selectItem(view: View, gridCount: GridCount, row: Int, column: Int, moveItem: Boolean) {
 
         if (moveItem) {
             // 最終的に移動した場所を始点に、残りの位置を更新する
 
             getPositionLayoutGridController(page)?.let {gridPage ->
-                moveGird(gridPage, gridPoint, view, row, column)
+                moveGird(gridPage, gridCount, view, row, column)
             }
 
         } else {
             getPositionLayoutGridController(page)?.let {gridPage ->
                 try {
-                    gridPage.updateGrid(view, gridPoint, row, column)
+                    gridPage.updateGrid(view, gridCount, row, column)
                 }catch(e: Exception) {
                     android.util.Log.e(TAG,"e:" + e.toString())
                 }
@@ -209,11 +210,11 @@ class GridAdapter(
      * 一箇所の移動に対して、一つずつずらして移動するロジック
      */
     private fun moveGird(gridPage: GridController,
-                         gridPoint: GridPoint,
+                         gridCount: GridCount,
                          view: View,
                          row: Int, column: Int) {
 
-        val nextView = gridPage.updateGrid(view, gridPoint, row, column)
+        val nextView = gridPage.updateGrid(view, gridCount, row, column)
 
         if (nextView != null) {
             var newRow = row
@@ -225,17 +226,17 @@ class GridAdapter(
             }
 
             if (row < rowCount) {
-                moveGird(gridPage, gridPoint, nextView, newRow, newColumn)
+                moveGird(gridPage, gridCount, nextView, newRow, newColumn)
             }
         }
     }
 
 
 
-    fun changeGrid(view: View, gridPoint: GridPoint,item: HomeItem) {
+    fun changeGrid(view: View, gridCount: GridCount,item: HomeItem) {
         getPositionLayoutGridController(page)?.let {gridPage ->
             gridPage.updateGridFrame(item.row, item.column, false)
-            gridPage.updateGrid(view, gridPoint, item.row, item.column)
+            gridPage.updateGrid(view, gridCount, item.row, item.column)
         }
     }
 
