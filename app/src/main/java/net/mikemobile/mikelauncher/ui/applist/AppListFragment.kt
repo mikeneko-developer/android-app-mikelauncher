@@ -55,19 +55,7 @@ class AppListFragment : Fragment() {
         recyclerView = this.view?.findViewById(R.id.recyclerView)
         adapter = AppAdapter(requireContext(), layoutInflater) { view, info ->
 
-
-
-            Global.selectItem.value = HomeItem(
-                0,
-                info.label,
-                null,
-                0,
-//                info.icon,
-                Global.getAppIcon(requireContext(), info.packageName),
-                info.label,
-                info.packageName,
-                info.name,
-            )
+            Global.selectItem.value = HomeItem.crateItem(requireContext(),info)
 
             adapter?.notifyDataSetChanged()
         }

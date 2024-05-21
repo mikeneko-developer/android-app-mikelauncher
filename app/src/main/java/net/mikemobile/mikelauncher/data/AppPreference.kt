@@ -84,7 +84,6 @@ class AppPreference(private val context: Context) {
         val jsonText = Json.encodeToString(jsonList)
         setDockAppsData(jsonText)
     }
-
     private fun saveFolderAppsList() {
         val jsonList = HashMap<String, ArrayList<HashMap<String, String>>>()
 
@@ -217,7 +216,9 @@ class AppPreference(private val context: Context) {
                             homeItem.icon = Global.getAppIcon(context, homeItem.packageName)
                         }
 
-                        itemList.add(homeItem)
+                        if (checkFolderInItem(homeItem)) {
+                            itemList.add(homeItem)
+                        }
                     }
                 }
 
@@ -226,5 +227,14 @@ class AppPreference(private val context: Context) {
             }
 
         }
+    }
+
+    private fun checkFolderInItem(item: HomeItem): Boolean {
+        if (Global.homeItemData.checkToolToFolder(item)) {
+            return true
+        } else if (Global.dockItemData.checkToolToFolder(item)) {
+            return true
+        }
+        return false
     }
 }

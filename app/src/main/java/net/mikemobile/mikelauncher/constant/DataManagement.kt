@@ -109,8 +109,8 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
             itemList[key] = list
 
             if (item.widgetId != -1) {
-                removeWidgetField(item.id)
-                addWidgetField(position, item)
+                //removeWidgetField(item.id)
+                //addWidgetField(position, item)
             }
 
 
@@ -200,7 +200,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
     /**
      * フォルダー判定
      */
-    fun checkToolToFolder(position: Int, row: Int, column: Int): Boolean {
+    fun checkToolToFolder(position: Int, row: Int, column: Int, homeItem: HomeItem): Boolean {
         val key = "" + position
 
         val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
@@ -213,7 +213,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
 
         if (list.containsKey(addItemKey)) {
             val item = list[addItemKey]
-            if (item!!.toolId == 2) {
+            if (item!!.toolId == 2 && item!!.id != homeItem.id) {
                 return true
             }
         }
@@ -311,8 +311,8 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         list[itemKey] = item
 
         if (item.widgetId != -1) {
-            removeWidgetField(item.id)
-            addWidgetField(position, item)
+            //removeWidgetField(item.id)
+            //addWidgetField(position, item)
         }
 
         itemList[key] = list
@@ -469,7 +469,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
                     if (list.containsKey(itemKey)) {
                         val item = list[itemKey]
 
-                        if (item != null && item.ownerId == ownerId) {
+                        if (item != null && item.firldId == ownerId) {
                             //removeHomeItem(page, rowId, columnId)
                         }
                     }
@@ -505,7 +505,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
                     if (list.containsKey(itemKey)) {
                         val item = list[itemKey]
 
-                        if (item != null && item.id != ownerId && item.ownerId == ownerId) {
+                        if (item != null && item.id != ownerId && item.firldId == ownerId) {
                             homeItemList.add(item)
                         }
                     }
@@ -615,5 +615,43 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         return false
     }
 
+
+
+    /**
+     * フォルダーの存在判定
+     */
+    fun checkToolToFolder(homeItem: HomeItem): Boolean {
+        val rowMax = if (cellPointName == CELL_POINT_NAME.DOCK) {
+            1
+        } else {
+            Global.ROW_COUNT
+        }
+
+        for(page in 0 until 5) {
+            val key = "" + page
+            val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+                HashMap<String, HomeItem>()
+            } else {
+                itemList[key]!!
+            }
+
+            for (rowId in 0 until rowMax) {
+
+                for (columnId in 0 until Global.COLUMN_COUNT) {
+
+                    val itemKey = "$rowId-$columnId"
+                    if (list.containsKey(itemKey)) {
+                        val item = list[itemKey]
+
+                        if (item != null && item.folderId == homeItem.folderId) {
+                            return true
+                        }
+                    }
+                }
+            }
+        }
+
+        return false
+    }
 
 }

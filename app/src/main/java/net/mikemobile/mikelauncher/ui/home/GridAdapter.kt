@@ -191,13 +191,11 @@ class GridAdapter(
             // 最終的に移動した場所を始点に、残りの位置を更新する
 
             getPositionLayoutGridController(page)?.let {gridPage ->
-                gridPage.updateGridFrame(row, column, false)
                 moveGird(gridPage, gridPoint, view, row, column)
             }
 
         } else {
             getPositionLayoutGridController(page)?.let {gridPage ->
-                gridPage.updateGridFrame(row, column, false)
                 try {
                     gridPage.updateGrid(view, gridPoint, row, column)
                 }catch(e: Exception) {

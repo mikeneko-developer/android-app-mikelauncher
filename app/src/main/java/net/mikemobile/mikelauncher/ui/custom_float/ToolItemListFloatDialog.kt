@@ -26,23 +26,16 @@ class ToolItemListFloatDialog(
     override fun onCreateView(context: Context, view: View) {
         val list = ArrayList<HomeItem>()
 
-        list.add(HomeItem(
-            -1,"",null,2,
-            icon = Global.getToolIcon(context, 1),
+        list.add(HomeItem.createTool(context,
             label = "ドロワー",
-            "","",
             detail = "アプリ一覧を表示するボタン",
             toolId = 1
         ))
 
-        list.add(HomeItem(
-            -1,"",null,2,
-            icon = Global.getToolIcon(context, 2),
+        list.add(HomeItem.createTool(context,
             label = "フォルダー",
-            "","",
             detail = "アプリをまとめるフォルダー",
             toolId = 2,
-            folderId = generateId()
         ))
 
         val adapter = ListAdapter(context, list) {

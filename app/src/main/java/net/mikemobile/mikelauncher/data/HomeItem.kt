@@ -1,16 +1,18 @@
 package net.mikemobile.mikelauncher.data
 
-import android.content.ComponentName
+import android.content.Context
 import android.graphics.drawable.Drawable
-import android.view.View
 import net.mikemobile.mikelauncher.constant.Global
+import net.mikemobile.mikelauncher.constant.GridPoint
+import net.mikemobile.mikelauncher.constant.WidgetData
+import net.mikemobile.mikelauncher.ui.applist.AppInfo
 
 data class HomeItem(
     var id: Int,
     var homeName: String,
     val image: String?,
 
-    val type: Int, // 0 = アプリ , 1 = widget
+    val type: Int, // 0 = アプリ , 1 = widget , 2 = ツール
 
     // アプリ情報
     var icon: Drawable?,
@@ -25,27 +27,27 @@ data class HomeItem(
     var toolId: Int = -1,
 
     // フォルダーで一意管理用のID
-    var folderId: Int = -1
+    var folderId: Int = -1,
+
+    // WidgetID
+    var widgetId: Int = -1,
     ){
 
+    // Gridの座標情報
     var row: Int = -1
     var column: Int = -1
 
-    // Widget情報
-    var widgetId: Int = -1
+    // Widgetのサイズ情報
     var width: Int = -1
     var height: Int = -1
+
+    // Widgtの範囲を埋めるための変数
+    var firldId: Int = -1
+    var widgetField = false // widgetのフィールド判定用
 
     // Widgetのフィールド範囲を指定する（縦1,横2マス分なら　fieldRow:2 fieldColumn:1
     var fieldRow = 1
     var fieldColumn = 1
-
-    var widgetField = false // widgetのフィールド判定用
-    var ownerId: Int = -1
-
-    // Tool
-
-
 
 
     fun convertHash(key: String): HashMap<String,String> {
@@ -74,7 +76,7 @@ data class HomeItem(
         }
         map["fieldRow"] = "" + fieldRow
         map["fieldColumn"] = "" + fieldColumn
-        map["ownerId"] = "" + ownerId
+        map["firldId"] = "" + firldId
 
         return map
     }
@@ -105,7 +107,7 @@ data class HomeItem(
         }
         map["fieldRow"] = "" + fieldRow
         map["fieldColumn"] = "" + fieldColumn
-        map["ownerId"] = "" + ownerId
+        map["firldId"] = "" + firldId
 
         return map
     }
@@ -154,8 +156,8 @@ data class HomeItem(
         if (map.containsKey("fieldColumn")) {
             fieldColumn = map["fieldColumn"]!!.toInt()
         }
-        if (map.containsKey("ownerId")) {
-            ownerId = map["ownerId"]!!.toInt()
+        if (map.containsKey("firldId")) {
+            firldId = map["firldId"]!!.toInt()
         }
 
         if (map.containsKey("key")) {
@@ -170,7 +172,7 @@ data class HomeItem(
 
     fun copyField(row: Int, column: Int): HomeItem{
         val item = this.copy()
-        item.ownerId = id
+        item.firldId = id
         item.id = Global.generateId()
         item.row = row
         item.column = column
@@ -178,4 +180,64 @@ data class HomeItem(
 
         return item
     }
+
+    companion object {
+        fun createWidget(widgetId: Int, widgetData: WidgetData, gridPoint: GridPoint): HomeItem {
+            val homeItem = HomeItem(
+                Global.generateId(),
+                "",
+                "",
+                1,
+                null,
+                label = widgetData.label,
+                "",
+                "",
+                widgetId = widgetId
+            )
+
+            homeItem.widgetId = widgetId
+            homeItem.width = widgetData.width
+            homeItem.height = widgetData.height
+            homeItem.fieldRow = gridPoint.row
+            homeItem.fieldColumn = gridPoint.column
+
+            return homeItem
+        }
+
+        fun createTool(context: Context, label: String, detail: String, toolId: Int): HomeItem {
+            var type = 2
+
+            var folderId = -1
+            if (toolId == 2) {
+                folderId = Global.generateId()
+            }
+
+            return HomeItem(
+                Global.generateId(),
+                "", null, type,
+                icon = Global.getToolIcon(context, toolId),
+                label = label,
+                "", "",
+                detail = detail,
+                toolId = toolId,
+                folderId = folderId
+            )
+        }
+
+        fun crateItem(context: Context, info: AppInfo): HomeItem {
+            val homeItem = HomeItem(
+                Global.generateId(),
+                info.label,
+                null,
+                0,
+                Global.getAppIcon(context, info.packageName),
+                info.label,
+                info.packageName,
+                info.name,
+            )
+
+            return homeItem
+        }
+    }
+
 }
