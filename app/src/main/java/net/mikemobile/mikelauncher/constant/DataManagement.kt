@@ -178,6 +178,28 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         return false
     }
 
+    /**
+     * 指定箇所が空白かチェックする
+     */
+    fun checkBlank(page:Int, row: Int, column: Int): Boolean {
+
+        val key = "" + page
+
+        val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+            HashMap<String, HomeItem>()
+        } else {
+            itemList[key]!!
+        }
+
+        val addItemKey = "$row-$column"
+
+        if (list.containsKey(addItemKey)) {
+            return true
+        }
+
+        return false
+    }
+
 
     fun checkWidget(position: Int, widgetId: Int): Boolean {
         val key = "" + position
@@ -666,6 +688,96 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         }
 
         return false
+    }
+
+
+
+
+
+    //////
+    fun getList(type: HomeItemType): ArrayList<HomeItem> {
+        val homeItemList = ArrayList<HomeItem>()
+
+        val rowMax = if (cellPointName == CELL_POINT_NAME.DOCK) {
+            1
+        } else {
+            Global.ROW_COUNT
+        }
+
+        for(page in 0 until 5) {
+            val key = "" + page
+            val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+                HashMap<String, HomeItem>()
+            } else {
+                itemList[key]!!
+            }
+
+            for(row in 0 until rowMax) {
+                for(column in 0 until Global.COLUMN_COUNT) {
+                    val itemKey = "$row-$column"
+                    if (list.containsKey(itemKey)) {
+                        val item = list[itemKey]
+
+                        if (item != null && item.page == -1) {
+                            item.page = page
+
+                            list[itemKey] = item
+                        }
+
+                        if (item != null && !item.widgetField) {
+                            if (type == HomeItemType.ALL || item.type == type.value) {
+                                homeItemList.add(item)
+                            }
+                        }
+                    }
+                }
+            }
+
+            itemList[key] = list
+        }
+
+        return homeItemList
+    }
+
+    fun setWidgetField() {
+        val list = getList(HomeItemType.WIDGET)
+
+        for(widgetItem in list) {
+            var page = widgetItem.page
+            var row = widgetItem.row
+            var column = widgetItem.column
+
+            val fieldRow = widgetItem.fieldRow
+            val fieldColumn = widgetItem.fieldColumn
+
+//            android.util.Log.i("DataManagement","name:" + widgetItem.label + "\n" +
+//                    "     page:" + page + " / row:" + row + " / column:" + column + "\n" +
+//                    "     fieldRow:" + fieldRow + " / fieldColumn:" + fieldColumn + "\n" +
+//                    "     width:" + widgetItem.width + " / height:" + widgetItem.height)
+
+            for(rowId in row until (row + fieldRow)) {
+                for(columnId in column until (column + fieldColumn)) {
+                    if (rowId == row && columnId == column) continue
+
+                    val itemKey = "$rowId-$columnId"
+
+                    android.util.Log.i("DataManagement","name:" + widgetItem.label +
+                            "     blank - itemKey:" + itemKey)
+
+                    if (!checkBlank(page, row, column)) {
+                        // 空白が存在しないので追加する
+                        android.util.Log.e("DataManagement","add widget field")
+
+                        val fieldItem = widgetItem.copyField(rowId, columnId)
+                        addItem(page, row, column, fieldItem)
+                    } else {
+                        // 空白データあり
+                        android.util.Log.i("DataManagement","is widget field")
+                    }
+                }
+            }
+
+        }
     }
 
 }

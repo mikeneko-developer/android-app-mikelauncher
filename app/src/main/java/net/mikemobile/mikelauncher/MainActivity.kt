@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.mikemobile.android.view.DragLayer
 import net.mikemobile.android.view.Folder
+import net.mikemobile.mikelauncher.constant.Global
 import net.mikemobile.mikelauncher.data.AppPreference
 import net.mikemobile.mikelauncher.ui.applist.AppListFragment
 import net.mikemobile.mikelauncher.ui.home.HomeFragment
@@ -41,9 +42,15 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnLongClick
 //            mAppWidgetHost!!.deleteAppWidgetId(id) //…(8)
 //        }
 
-
+        // 保存データ取得
         val pref = AppPreference(this)
         pref.getAppsList()
+
+        // 保存データから、Widgetの配置に関するデータ保管をする
+        Global.homeItemData.setWidgetField()
+
+        // 取得したデータを保存しておく
+        pref.setAppsList()
 
 
         if (false) {// widget設置テスト用

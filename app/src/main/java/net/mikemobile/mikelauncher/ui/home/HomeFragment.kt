@@ -569,25 +569,55 @@ class HomeFragment : Fragment(),
                 }
 
             } else if (item.widgetId != -1) {
+
+                Log.i(TAG + "-WIDGET","setDragAndDropData >> homeItem　data " +
+                        "label:" + item.label + " / type:" + item.type + "\n" +
+                        "widgetId:" + item.widgetId + " / widgetField:" + item.widgetField + "\n" +
+                        "")
+
+
                 val widgetData = getWidgetView(this.requireActivity().applicationContext, mAppWidgetHost!!, it.widgetId)
                 if (widgetData != null) {
                     if (item.width == -1 || item.height == -1) {
                         item.width = widgetData.width
                         item.height = widgetData.height
 
-
                         Global.updateItem(item)
+                        pref.setAppsList()
                     }
 
-                    val gridPoint = Global.calcSizeToGridCount(widgetData.width, widgetData.height)
 
-                    android.util.Log.i(TAG,"gridCount >> widgetData label:" + widgetData.label + " rowCount:" + gridPoint.rowCount + " / columnCount:" + gridPoint.columnCount)
+                    val gridCount = Global.calcSizeToGridCount(widgetData.width, widgetData.height)
+
+                    android.util.Log.i(TAG + "-WIDGET","gridCount >> " + "\n" +
+                            "widgetData label:" + widgetData.label + "" + "\n" +
+                            "fieldRow:" + item.fieldRow + " / fieldColumn:" + item.fieldColumn + "\n" +
+                            "rowCount:" + gridCount.rowCount + " / columnCount:" + gridCount.columnCount)
+
+                    if (item.fieldColumn != gridCount.columnCount || item.fieldRow != gridCount.rowCount) {
+                        item.fieldRow = gridCount.rowCount
+                        item.fieldColumn = gridCount.columnCount
+                        Global.updateItem(item)
+                        pref.setAppsList()
+                    }
 
                     layout.addView(widgetData.view)
 
-                    layout.layoutParams.width = (Global.gridSize.width * (gridPoint.columnCount)).toInt()
-                    layout.layoutParams.height = (Global.gridSize.height * (gridPoint.rowCount)).toInt()
+                    layout.layoutParams.width = (Global.gridSize.width * (gridCount.columnCount)).toInt()
+                    layout.layoutParams.height = (Global.gridSize.height * (gridCount.rowCount)).toInt()
+                } else {
+                    // 対象のデータは存在しないためリストから削除する
+
+                    android.util.Log.e(TAG + "-WIDGET","「${item.label}/${item.widgetId}」はWidgetとして存在しないため削除対象")
+                    if (viewType == CELL_POINT_NAME.DESKTOP) {
+                        Global.homeItemData.removeHomeItem(item.page, item.row, item.column)
+                    } else if (viewType == CELL_POINT_NAME.DOCK) {
+                        Global.dockItemData.removeHomeItem(item.page, item.row, item.column)
+                    }
+                    pref.setAppsList()
                 }
+
+
             } else{
                 val view = createItemView(requireContext(), it)
                 layout.addView(view)
@@ -655,6 +685,12 @@ class HomeFragment : Fragment(),
         val cellPointPoint = GridPoint(homeItem.row, homeItem.column)
 
         // Viewを取得
+        Log.i(TAG,"setDragAndDropData >> homeItem　data " +
+                "label:" + homeItem.label + " / type:" + homeItem.type + "\n" +
+                "widgetId:" + homeItem.widgetId + " / widgetField:" + homeItem.widgetField + "\n" +
+                "")
+
+
         Log.i(TAG,"setDragAndDropData >> Viewの生成 row:" + cellPointPoint.row + " / column:" + cellPointPoint.column)
         val view = adapter.getGridView(cellPointPoint.row, cellPointPoint.column) ?: return
 

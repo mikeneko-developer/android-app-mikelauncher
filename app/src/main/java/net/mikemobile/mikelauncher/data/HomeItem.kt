@@ -35,6 +35,7 @@ data class HomeItem(
     ){
 
     // Gridの座標情報
+    var page: Int = -1
     var row: Int = -1
     var column: Int = -1
 
@@ -61,6 +62,7 @@ data class HomeItem(
         map["packageName"] = "" + packageName
         map["name"] = "" + name
         map["key"] = key
+        map["page"] = "" + page
         map["row"] = "" + row
         map["column"] = "" + column
         map["widgetId"] = "" + widgetId
@@ -92,6 +94,7 @@ data class HomeItem(
         map["packageName"] = "" + packageName
         map["name"] = "" + name
         map["key"] = ""
+        map["page"] = "" + page
         map["row"] = "" + row
         map["column"] = "" + column
         map["widgetId"] = "" + widgetId
@@ -134,6 +137,9 @@ data class HomeItem(
         }
         if (map.containsKey("widgetId")) {
             widgetId = map["widgetId"]!!.toInt()
+        }
+        if (map.containsKey("page")) {
+            page = map["page"]!!.toInt()
         }
         if (map.containsKey("row")) {
             row = map["row"]!!.toInt()

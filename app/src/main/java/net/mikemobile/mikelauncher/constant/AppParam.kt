@@ -4,9 +4,10 @@ import android.view.View
 
 
 enum class HomeItemType(val value: Int) {
-    APP(1),
-    WIDGET(2),
-    TOOL(3),
+    ALL(999),
+    APP(0),
+    WIDGET(1),
+    TOOL(2),
 }
 
 enum class CELL_POINT_NAME(val value: Int) {
