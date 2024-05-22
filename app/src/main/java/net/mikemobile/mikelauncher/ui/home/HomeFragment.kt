@@ -1535,6 +1535,9 @@ class HomeFragment : Fragment(),
 
         val displaySize = viewPager!!.getSize()
 
+        android.util.Log.i("openFolderToAppMenu","touch DimenPoint x:" + point.x + " / y:" + point.y)
+
+
         var startX = point.x + (size.width/2)
         var startY = point.y - height
 
@@ -1545,13 +1548,13 @@ class HomeFragment : Fragment(),
         } else if (displaySize.width < startX + width) {
             startX = displaySize.width - width - 10f
         }
+        android.util.Log.i("openFolderToAppMenu","Dialog Position startX:" + startX + " / startY:" + startY)
 
         val appMenuFloatDialog = AppMenuFloatDialog(requireContext(),
             callbackDelete = {
-                folderDialog?.close()
-                folderDialog = null
-
                 Global.folderManager.removeItem(folder.folderId, item)
+                val list = Global.folderManager.getList(folder.folderId)
+                folderDialog?.update(list)
                 pref.setAppsList()
 
                 updateFolderApp(folder)
@@ -1574,8 +1577,8 @@ class HomeFragment : Fragment(),
             closeOverLayView2()
         }
 
-        openOverlayView2(appMenuFloatDialog, false)
         appMenuFloatDialog.setDialogSize(startX.toFloat(), startY)
+        openOverlayView2(appMenuFloatDialog, false)
     }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////

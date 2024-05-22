@@ -355,7 +355,7 @@ fun checkDisplayToPosition(view: View, point: DimenPoint): DimenPoint {
     val parentView = view.parent as? ViewGroup
     if (parentView != null) {
         point.x += parentView.x
-        point.x += parentView.y
+        point.y += parentView.y
 
         return checkDisplayToPosition(parentView, point)
     }

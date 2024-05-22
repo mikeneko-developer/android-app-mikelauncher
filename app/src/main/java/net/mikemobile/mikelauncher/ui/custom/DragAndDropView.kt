@@ -191,25 +191,25 @@ class DragAndDropView: ConstraintLayout {
 
 
         if (oneCellSize.width != -1f && oneCellSize.height != -1f) {
-            for(rowId in 0 until row) {
-                canvas.drawLine(
-                    0f,
-                    oneCellSize.height * rowId,
-                    oneCellSize.width * column,
-                    oneCellSize.height * rowId,
-                    paint
-                )
-            }
-
-            for(columnId in 0 until column) {
-                canvas.drawLine(
-                    oneCellSize.width * columnId,
-                    0f,
-                    oneCellSize.width * columnId,
-                    oneCellSize.height * row,
-                    paint
-                )
-            }
+//            for(rowId in 0 until row) {
+//                canvas.drawLine(
+//                    0f,
+//                    oneCellSize.height * rowId,
+//                    oneCellSize.width * column,
+//                    oneCellSize.height * rowId,
+//                    paint
+//                )
+//            }
+//
+//            for(columnId in 0 until column) {
+//                canvas.drawLine(
+//                    oneCellSize.width * columnId,
+//                    0f,
+//                    oneCellSize.width * columnId,
+//                    oneCellSize.height * row,
+//                    paint
+//                )
+//            }
         }
 
         if (onTouchEventDisable) {
