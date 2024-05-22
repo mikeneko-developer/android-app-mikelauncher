@@ -258,25 +258,6 @@ class GridAdapter(
         val column = gridPoint.column
         val row = gridPoint.row
 
-        // 前の選択箇所が残っているなら、その場所が現在の位置と違うなら更新する
-        if (prevPoint != null) {
-
-            val precColumn = prevPoint!!.column
-            val prevRow = prevPoint!!.row
-
-
-            if (column == precColumn && row == prevRow) {
-                //  位置情報が同じなら再描画しない
-                prevPoint = gridPoint
-                return
-            }
-
-            getPositionLayoutGridController(page)?.let { page ->
-                //page.updateGridFrame(prevRow, precColumn, false)
-            }
-        }
-        prevPoint = gridPoint
-
         getPositionLayoutGridController(page)?.let {page ->
             //page.updateGridFrame(row, column, true)
         }

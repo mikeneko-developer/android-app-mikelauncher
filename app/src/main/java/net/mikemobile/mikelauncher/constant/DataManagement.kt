@@ -7,7 +7,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
 
     val itemList = HashMap<String, HashMap<String, HomeItem>>()
 
-    fun addItem(page: Int, item: HomeItem): Boolean {
+    fun addItem(page: Int, item: HomeItem): HomeItem? {
         val key = "" + page
 
         val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
@@ -23,21 +23,21 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
             for(columnId in 0 until Global.COLUMN_COUNT) {
                 val itemKey = "$rowId-$columnId"
                 if (!list.containsKey(itemKey)) {
-
-                    if (
-                        (item.fieldRow > 1 || item.fieldColumn > 1)
-                        && checkFieldSpace(item, page, rowId, columnId)
-                    ) {
+                    if (item.type == HomeItemType.WIDGET.value) {
                         // widgetだったら、配置範囲が空白かチェックする
-                        row = rowId
-                        column = columnId
+                        if (checkFieldSpace(item, page, rowId, columnId)) {
+                            // widgetだったら、配置範囲が空白かチェックする
+                            row = rowId
+                            column = columnId
+                            break
+                        }
                     } else {
                         // widgetじゃないので追加とする
                         row = rowId
                         column = columnId
+                        break
                     }
 
-                    break
                 }
             }
 
@@ -55,36 +55,24 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
             list[itemKey] = item
             itemList[key] = list
 
-//            if (item.fieldRow > 1 || item.fieldColumn > 1) {
-//                for(rowId in row until (row + item.fieldRow)) {
-//                    for(columnId in column until (column + item.fieldColumn)) {
-//                        if (rowId != row || columnId != column) {
-//                            val fieldItemKey = "$rowId-$columnId"
-//
-//                            val fieldItem = item.copyField(rowId, columnId)
-//                            list[fieldItemKey] = fieldItem
-//                            itemList[key] = list
-//                        }
-//                    }
-//                }
-//            }
-
 
         } else {
-            return false
+            return null
         }
-        return true
+        return item
     }
 
 
     fun addItem(
         position: Int,
-        row: Int,
-        column: Int,
+        newRow: Int,
+        newColumn: Int,
         item: HomeItem,
         update: ITEM_MOVE = ITEM_MOVE.MOVING_ITEM_NONE
     ): ITEM_MOVE {
         val key = "" + position
+        var row = newRow
+        var column = newColumn
 
         val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
             HashMap<String, HomeItem>()
@@ -95,60 +83,206 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         val addItemKey = "$row-$column"
 
         if (!list.containsKey(addItemKey)) {
-            if (item.widgetId != -1 && (item.fieldRow > 0 || item.fieldColumn > 0)) {
-                // widgetでかつサイズが１＊１より大きい場合に空きがないかチェックする
-                //if (!checkWidgetOnCell(row, column)) return ITEM_MOVE.MOVE_NG
-            }
-
-
             // データがないので入れて終わり
 
-            item.row = row
-            item.column = column
+            if (item.widgetField) {
+                // Widget用ブランクデータなのでそのまま追加する
+                item.row = row
+                item.column = column
 
-            list[addItemKey] = item
-            itemList[key] = list
+                list[addItemKey] = item
+                itemList[key] = list
 
-            if (item.widgetId != -1) {
-                //removeWidgetField(item.id)
-                //addWidgetField(position, item)
+                return ITEM_MOVE.MOVING_ITEM_ENABLED
+            } else if (item.type != HomeItemType.WIDGET.value) {
+                // widgetじゃないのでそのまま追加
+                item.row = row
+                item.column = column
+
+                list[addItemKey] = item
+                itemList[key] = list
+
+                return ITEM_MOVE.MOVING_ITEM_ENABLED
             }
 
-            return ITEM_MOVE.MOVING_ITEM_ENABLED
+            // widgetなのでさらに条件をつける
 
-        } else {
-            // データある場合
+            // 配置位置がGrid外に出ていないかチェック
+            if (row + item.fieldRow >= Global.ROW_COUNT) {
+                row = Global.ROW_COUNT - item.fieldRow
+            }
 
-            // 指定箇所以降にWidgetがある場合は一旦移動はなしとする
-            //if (!checkWidgetOnCell(row, column)) return ITEM_MOVE.MOVE_NG
+            if (column + item.fieldColumn > Global.COLUMN_COUNT) {
+                column = Global.COLUMN_COUNT - item.fieldColumn
+            }
 
 
-            // 指定場所以降にスペースがあるかチェックする
-            var blancCellEnable = checkBlank(list, row, column)
 
-            if (!blancCellEnable) return ITEM_MOVE.MOVE_NG
+            val fieldList = getWidgetFieldAddList(item, row, column)
 
-            // もともと入っているデータを取り出す
-            val outputItem = list[addItemKey]
-
-            list[addItemKey] = item
-            itemList[key] = list
-
-            outputItem?.let {
-                // 隣の場所を計算する
-                var newRow = row
-                var newColumn = column + 1
-                if (newColumn > 4) {
-                    newColumn = 0
-                    newRow = row + 1
+            var notItem = true
+            for(fieldItem in fieldList) {
+                var fieldRow = fieldItem.row
+                var fieldColumn = fieldItem.column
+                val fieldItemKey = "$fieldRow-$fieldColumn"
+                if (list.containsKey(fieldItemKey)) {
+                    notItem = false
+                    break
                 }
-
-                // メソッドの際入れ子呼び出しを実施する
-                return addItem(position, newRow, newColumn, outputItem, ITEM_MOVE.MOVING_ITEM_ENABLED)
             }
+
+            if (notItem) {
+                // Widgetの配置場所にアイテムがないのでそのまま追加する
+                item.row = row
+                item.column = column
+
+                list[addItemKey] = item
+                itemList[key] = list
+
+                return ITEM_MOVE.MOVING_ITEM_ENABLED
+            }
+
+
+        }
+
+        // データある場合
+
+
+//        if (item.type == HomeItemType.WIDGET.value) {
+//
+//            // ウィジェットの範囲を取得
+//            val fieldList = getWidgetFieldAddList(item, row, column)
+//
+//            // 移動先にアイテムがあるならそれも取得しておく
+//            if (list.containsKey(addItemKey)) {
+//                list[addItemKey]?.let { fieldList.add(0, it) }
+//            }
+//
+//            // 使用されている（予定も含む）Gridのデータ
+//            val activeGridList = list.clone() as HashMap<String, HomeItem>
+//
+//            // 移動対象のリストを生成する
+//            var moveItemList = ArrayList<HomeItem>()
+//            for(posiItem in fieldList) {
+//                val moveItemKey = "" + posiItem.row + "-" + posiItem.column
+//                if (list.containsKey(moveItemKey)) {
+//                    list[moveItemKey]?.let {
+//                        moveItemList.add(it)
+//                    }
+//
+//
+//
+//                    // ウィジェットの範囲も対象にするため追加する
+//                    activeGridList[moveItemKey] = posiItem
+//                }
+//            }
+//
+//            var reMoveItemList = ArrayList<HomeItem>()
+//            for(moveItem in moveItemList) {
+//                if (moveItem.type == HomeItemType.WIDGET.value) {
+//                    // 移動対象にWidgetがあるので動かすのをやめる
+//                    return ITEM_MOVE.MOVE_NG
+//                }
+//
+//                val gridPoint = moveItems(moveItem, activeGridList)
+//
+//                if (gridPoint == null) {
+//                    // 移動できないアイテムがあったので移動はなしとする
+//                    return ITEM_MOVE.MOVE_NG
+//                }
+//
+//                moveItem.row = gridPoint.row
+//                moveItem.column = gridPoint.column
+//
+//                reMoveItemList.add(moveItem)
+//
+//                val moveItemKey = "" + moveItem.row + "-" + moveItem.column
+//                activeGridList[moveItemKey] = moveItem
+//            }
+//
+//
+//            // Widgetを配置する
+//            item.row = row
+//            item.column = column
+//
+//            list[addItemKey] = item
+//
+//            // ここまで来れたので、移動するデータをそれぞれ移動する
+//            for(moveItem in reMoveItemList) {
+//                val moveItemKey = "" + moveItem.row + "-" + moveItem.column
+//                list[moveItemKey] = item
+//            }
+//
+//            itemList[key] = list
+//
+//            return ITEM_MOVE.MOVING_ITEM_ENABLED
+//        }
+
+
+        // 上記外の条件でWidgetがきたら強制NG
+        if (item.type == HomeItemType.WIDGET.value) return ITEM_MOVE.MOVE_NG
+
+        // 指定箇所以降にWidgetがある場合は一旦移動はなしとする
+        //if (!checkWidgetOnCell(row, column)) return ITEM_MOVE.MOVE_NG
+
+
+        // 指定場所以降にスペースがあるかチェックする
+        var blancCellEnable = checkBlank(list, row, column)
+
+        if (!blancCellEnable) return ITEM_MOVE.MOVE_NG
+
+        // もともと入っているデータを取り出す
+        val outputItem = list[addItemKey]
+
+        list[addItemKey] = item
+        itemList[key] = list
+
+
+        if (item.type != HomeItemType.WIDGET.value) {
+            addWidgetField(item)
+        }
+
+        outputItem?.let {
+            // 隣の場所を計算する
+            var newRow = row
+            var newColumn = column + 1
+            if (newColumn > 4) {
+                newColumn = 0
+                newRow = row + 1
+            }
+
+            // メソッドの際入れ子呼び出しを実施する
+            return addItem(position, newRow, newColumn, outputItem, ITEM_MOVE.MOVING_ITEM_ENABLED)
         }
 
         return update
+    }
+
+    private fun moveItems(item: HomeItem, activeGridList: HashMap<String, HomeItem>): GridPoint? {
+        val rowMax = if (cellPointName == CELL_POINT_NAME.DOCK) {
+            1
+        } else {
+            Global.ROW_COUNT
+        }
+
+        val row = item.row
+        val column = item.column
+
+        for (rowId in 0 until rowMax) {
+            if (rowId < row) continue
+
+            for (columnId in 0 until Global.COLUMN_COUNT) {
+                if (rowId == row && columnId < column) continue
+
+                val itemKey = "$rowId-$columnId"
+                if (!activeGridList.containsKey(itemKey)) {
+                    // 移動先がない場所があるので確定
+                    return GridPoint(rowId, columnId)
+                }
+            }
+        }
+
+        return null
     }
 
     private fun checkBlank(list: HashMap<String, HomeItem>, row: Int, column: Int): Boolean {
@@ -354,6 +488,27 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         itemList[key] = list
     }
 
+    fun addHomeItem(item: HomeItem) {
+        var page = item.page
+        var row = item.row
+        var column = item.column
+
+        val key = "" + page
+
+        val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+            HashMap<String, HomeItem>()
+        } else {
+            itemList[key]!!
+        }
+
+        val itemKey = "$row-$column"
+
+        list[itemKey] = item
+        itemList[key] = list
+
+    }
+
+
     fun removeHomeItem(position: Int, row: Int, column: Int) {
         val key = "" + position
 
@@ -368,9 +523,15 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         val itemKey = "$row-$column"
 
         if (list.containsKey(itemKey)) {
-            list.remove(itemKey)
+            val delItem = list[itemKey]
 
+            list.remove(itemKey)
             itemList[key] = list
+
+            if (delItem != null && delItem.type == HomeItemType.WIDGET.value) {
+                removeWidgetField(delItem)
+            }
+
         } else {
             android.util.Log.i("TESTEST","")
         }
@@ -454,98 +615,89 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
     }
 
 
-    fun addWidgetField(position: Int, item: HomeItem) {
-        val row = item.row
-        val column = item.column
+    fun addWidgetField(item: HomeItem) {
+        var page = item.page
+        var row = item.row
+        var column = item.column
 
-        val key = "" + position
+        val fieldRow = item.fieldRow
+        val fieldColumn = item.fieldColumn
 
-        val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
-            HashMap<String, HomeItem>()
-        } else {
-            itemList[key]!!
-        }
+        for(rowId in row until (row + fieldRow)) {
+            for(columnId in column until (column + fieldColumn)) {
+                if (rowId == row && columnId == column) continue
 
-        if (item.fieldRow > 0 || item.fieldColumn > 0) {
-            for(rowId in row until (row + (item.fieldRow + 1))) {
-                for(columnId in column until (column + (item.fieldColumn + 1))) {
-                    if (rowId != row || columnId != column) {
-                        val fieldItemKey = "$rowId-$columnId"
-
-                        val fieldItem = item.copyField(rowId, columnId)
-
-                        list[fieldItemKey] = fieldItem
-
-                    }
-                }
+                val widgetField = item.copyField(rowId, columnId)
+                addHomeItem(widgetField)
             }
         }
-        itemList[key] = list
     }
 
-    fun removeWidgetField(ownerId: Int) {
-        val rowMax = if (cellPointName == CELL_POINT_NAME.DOCK) {
-            1
-        } else {
-            Global.ROW_COUNT
-        }
+    fun removeWidgetField(item: HomeItem) {
+        var page = item.page
+        var row = item.row
+        var column = item.column
 
+        val fieldRow = item.fieldRow
+        val fieldColumn = item.fieldColumn
 
-        for(page in 0 until 5) {
-            val key = "" + page
-            val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
-                HashMap<String, HomeItem>()
-            } else {
-                itemList[key]!!
-            }
+        for(rowId in row until (row + fieldRow)) {
+            for(columnId in column until (column + fieldColumn)) {
+                if (rowId == row && columnId == column) continue
 
-            for (rowId in 0 until rowMax) {
-                for (columnId in 0 until Global.COLUMN_COUNT) {
-                    val itemKey = "$rowId-$columnId"
-                    if (list.containsKey(itemKey)) {
-                        val item = list[itemKey]
-
-                        if (item != null && item.fieldId == ownerId) {
-                            //removeHomeItem(page, rowId, columnId)
-                        }
-                    }
-                }
+                removeHomeItem(page, rowId, columnId)
             }
         }
-
 
     }
 
-    fun getWidgetFieldList(ownerId: Int): ArrayList<HomeItem> {
+    fun getWidgetFieldList(item: HomeItem): ArrayList<HomeItem> {
         val homeItemList = ArrayList<HomeItem>()
 
-        val rowMax = if (cellPointName == CELL_POINT_NAME.DOCK) {
-            1
-        } else {
-            Global.ROW_COUNT
+        var page = item.page
+        var row = item.row
+        var column = item.column
+
+        val fieldRow = item.fieldRow
+        val fieldColumn = item.fieldColumn
+
+        for(rowId in row until (row + fieldRow)) {
+            for(columnId in column until (column + fieldColumn)) {
+                if (rowId == row && columnId == column) continue
+
+                val itemKey = "$rowId-$columnId"
+
+                val fieldItem = getItem(page, rowId, columnId)
+
+                fieldItem?.let { homeItemList.add(it) }
+            }
         }
 
+        return homeItemList
+    }
 
-        for(page in 0 until 5) {
-            val key = "" + page
-            val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
-                HashMap<String, HomeItem>()
-            } else {
-                itemList[key]!!
-            }
 
-            for (rowId in 0 until rowMax) {
+    fun getWidgetFieldAddList(item: HomeItem): ArrayList<HomeItem> {
+        var row = item.row
+        var column = item.column
+        return getWidgetFieldAddList(item, row, column)
+    }
 
-                for (columnId in 0 until Global.COLUMN_COUNT) {
-                    val itemKey = "$rowId-$columnId"
-                    if (list.containsKey(itemKey)) {
-                        val item = list[itemKey]
 
-                        if (item != null && item.id != ownerId && item.fieldId == ownerId) {
-                            homeItemList.add(item)
-                        }
-                    }
-                }
+    fun getWidgetFieldAddList(item: HomeItem, row: Int, column: Int): ArrayList<HomeItem> {
+        val homeItemList = ArrayList<HomeItem>()
+
+        var page = item.page
+
+        val fieldRow = item.fieldRow
+        val fieldColumn = item.fieldColumn
+
+        for(rowId in row until (row + fieldRow)) {
+            for(columnId in column until (column + fieldColumn)) {
+                if (rowId == row && columnId == column) continue
+
+                val fieldItem = item.copyField(rowId, columnId)
+                homeItemList.add(fieldItem)
             }
         }
 
@@ -599,8 +751,17 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
             itemList[key]!!
         }
 
-        for(rowId in row until (row + item.fieldRow + 1)) {
-            for(columnId in column until (row + item.fieldColumn + 1)) {
+        val fieldRow = item.fieldRow
+        val fieldColumn = item.fieldColumn
+
+        if (row + fieldRow >= Global.ROW_COUNT || column + fieldColumn >= Global.COLUMN_COUNT) {
+            return false
+        }
+
+        for(rowId in row until (row + fieldRow)) {
+            for(columnId in column until (column + fieldColumn)) {
+                if (rowId == row && columnId == column) continue
+
                 val itemKey = "$rowId-$columnId"
                 if (list.containsKey(itemKey)) {
                     return false
@@ -743,40 +904,46 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         val list = getList(HomeItemType.WIDGET)
 
         for(widgetItem in list) {
-            var page = widgetItem.page
-            var row = widgetItem.row
-            var column = widgetItem.column
+            addWidgetFieldToItem(widgetItem)
+        }
+    }
 
-            val fieldRow = widgetItem.fieldRow
-            val fieldColumn = widgetItem.fieldColumn
+
+    fun addWidgetFieldToItem(widgetItem: HomeItem) {
+
+        var page = widgetItem.page
+        var row = widgetItem.row
+        var column = widgetItem.column
+
+        val fieldRow = widgetItem.fieldRow
+        val fieldColumn = widgetItem.fieldColumn
 
 //            android.util.Log.i("DataManagement","name:" + widgetItem.label + "\n" +
 //                    "     page:" + page + " / row:" + row + " / column:" + column + "\n" +
 //                    "     fieldRow:" + fieldRow + " / fieldColumn:" + fieldColumn + "\n" +
 //                    "     width:" + widgetItem.width + " / height:" + widgetItem.height)
 
-            for(rowId in row until (row + fieldRow)) {
-                for(columnId in column until (column + fieldColumn)) {
-                    if (rowId == row && columnId == column) continue
+        for(rowId in row until (row + fieldRow)) {
+            for(columnId in column until (column + fieldColumn)) {
+                if (rowId == row && columnId == column) continue
 
-                    val itemKey = "$rowId-$columnId"
+                val itemKey = "$rowId-$columnId"
 
-                    android.util.Log.i("DataManagement","name:" + widgetItem.label +
-                            "     blank - itemKey:" + itemKey)
+                android.util.Log.i("DataManagement","name:" + widgetItem.label +
+                        "     blank - itemKey:" + itemKey)
 
-                    if (!checkBlank(page, row, column)) {
-                        // 空白が存在しないので追加する
-                        android.util.Log.e("DataManagement","add widget field")
+                if (!checkBlank(page, rowId, columnId)) {
+                    // 空白が存在しないので追加する
+                    android.util.Log.e("DataManagement","add widget field")
 
-                        val fieldItem = widgetItem.copyField(rowId, columnId)
-                        addItem(page, row, column, fieldItem)
-                    } else {
-                        // 空白データあり
-                        android.util.Log.i("DataManagement","is widget field")
-                    }
+                    val fieldItem = widgetItem.copyField(rowId, columnId)
+                    addItem(page, rowId, columnId, fieldItem)
+                } else {
+                    // 空白データあり
+                    android.util.Log.i("DataManagement","is widget field")
+
                 }
             }
-
         }
     }
 

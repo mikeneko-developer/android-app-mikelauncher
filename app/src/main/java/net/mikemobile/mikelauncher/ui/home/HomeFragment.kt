@@ -483,10 +483,24 @@ class HomeFragment : Fragment(),
         if (!Global.homeItemData.checkWidget(gridPage, widgetId)) {
             val homeItem = HomeItem.createWidget(widgetId, widgetData, gridCount)
 
-            val addEnable = Global.homeItemData.addItem(gridPage, homeItem)
-            if (addEnable) {
+            val addItem = Global.homeItemData.addItem(gridPage, homeItem)
+            if (addItem != null) {
+
                 pref.setAppsList()
-                desktopAdapter.addGrid(widgetData.view, gridCount, homeItem)
+                desktopAdapter.addGrid(widgetData.view, gridCount, addItem)
+
+                if (addItem.type == HomeItemType.WIDGET.value) {
+                    Global.homeItemData.addWidgetFieldToItem(addItem)
+                    val list = Global.homeItemData.getWidgetFieldList(addItem)
+
+                    for(fieldItem in list) {
+                        val blankView = getView(this.requireContext(), net.mikemobile.mikelauncher.R.layout.home_item_blank)
+                        blankView?.let {
+                            val gridCount = GridCount(1, 1)
+                            desktopAdapter.addGrid(blankView, gridCount, fieldItem)
+                        }
+                    }
+                }
             }
         } else {
             val homeItem = Global.homeItemData.getWidgetHomeItem(gridPage, widgetId)
@@ -532,10 +546,20 @@ class HomeFragment : Fragment(),
 
 
         item?.let {
+            Log.i(TAG + "-WIDGET_FIELD","setDragAndDropData >> homeItem　data " +
+                    "label:" + item.label + " / type:" + item.type + "\n" +
+                    "widgetId:" + item.widgetId + " / widgetField:" + item.widgetField + "\n" +
+                    "")
 
             if (item.widgetField) {
+
+
+
                 if (Global.homeItemData.checkNotWidgetData(item.fieldId)) {
                     // オリジナルのデータがない
+
+                    Log.i(TAG + "-WIDGET_FIELD","setDragAndDropData >> not origin to delete")
+
                     Global.homeItemData.removeHomeItem(position, row, column)
                     pref.setAppsList()
                     return
@@ -678,7 +702,9 @@ class HomeFragment : Fragment(),
 //            } else {
 //                null
 //            }
+            homeItem = null
         }
+
         Log.i(TAG,"setDragAndDropData >> homeItem is null = " + (homeItem == null))
         if (homeItem == null) return
 
@@ -1082,32 +1108,35 @@ class HomeFragment : Fragment(),
 
                     if (moveToPrevItemDelete) {
                         moveToPrevItemDelete = false
+
                         if (cellPointName == CELL_POINT_NAME.DESKTOP) {
                             desktopAdapter.removePageItem(gridPage, dragItem!!.row, dragItem!!.column)
 
+                            if (dragItem!!.type == HomeItemType.WIDGET.value) {
+                                val list = Global.homeItemData.getWidgetFieldList(dragItem!!)
+
+                                for(fieldItem in list) {
+                                    desktopAdapter.removePageItem(
+                                        fieldItem.page,
+                                        fieldItem.row,
+                                        fieldItem.column
+                                    )
+                                }
+                            }
+
                         } else if (cellPointName == CELL_POINT_NAME.DOCK) {
                             dockAdapter.removePageItem(0, dragItem!!.row, dragItem!!.column)
-                        }
 
-                        if (dragItem!!.widgetId != -1) {
-                            if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-                                Global.homeItemData.removeHomeItem(gridPage,  dragItem!!.row, dragItem!!.column)
-                                desktopAdapter.removePageItem(gridPage, dragItem!!.row, dragItem!!.column)
+                            if (dragItem!!.type == HomeItemType.WIDGET.value) {
+                                val list = Global.dockItemData.getWidgetFieldList(dragItem!!)
 
-//                                val list = Global.homeItemData.getWidgetFieldList(dragItem!!.id)
-//                                for(fieldItem in list) {
-//                                    desktopAdapter.removePageItem(gridPage, fieldItem!!.row, fieldItem!!.column)
-//                                }
-
-                            } else if (cellPointName == CELL_POINT_NAME.DOCK) {
-                                Global.dockItemData.removeHomeItem(0,  dragItem!!.row, dragItem!!.column)
-                                dockAdapter.removePageItem(0, dragItem!!.row, dragItem!!.column)
-
-//                                val list = Global.dockItemData.getWidgetFieldList(dragItem!!.id)
-//                                for(fieldItem in list) {
-//                                    dockAdapter.removePageItem(gridPage, fieldItem.row, fieldItem.column)
-//                                }
-
+                                for(fieldItem in list) {
+                                    dockAdapter.removePageItem(
+                                        fieldItem.page,
+                                        fieldItem.row,
+                                        fieldItem.column
+                                    )
+                                }
                             }
                         }
                     }
@@ -1164,8 +1193,8 @@ class HomeFragment : Fragment(),
         item: HomeItem,
         view: View,
         page: Int,
-        row: Int,
-        column: Int,
+        newRow: Int,
+        newColumn: Int,
         itemData: DataManagement,
         prevpage: Int,
         prevRow: Int,
@@ -1175,11 +1204,13 @@ class HomeFragment : Fragment(),
         adapter: GridAdapter,
         prevAdapter: GridAdapter) {
 
+        var row = newRow
+        var column = newColumn
         android.util.Log.i(TAG,"setGrid >>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
+        // 移動元のデータを削除する
         android.util.Log.i(TAG,"setGrid >> データを削除する" + "prevpage:" + prevpage + " / prevRow:" + prevRow + " / prevColumn:" + prevColumn)
-        //deleteItemData.removeHomeItem(prevpage, prevRow, prevColumn)
-        //deleteItemData.removeWidgetField(item.id)
+        deleteItemData.removeHomeItem(prevpage, prevRow, prevColumn)
 
         android.util.Log.i(TAG,"setGrid >> データを追加する" + "page:" + page + " / row:" + row + " / column:" + column)
         android.util.Log.i(TAG,"setGrid >> アイテム"
@@ -1190,35 +1221,54 @@ class HomeFragment : Fragment(),
                 + "\n firldId:" + item.fieldId
         )
 
-        val moveItem = itemData.addItem(page, row, column, item)
 
-        android.util.Log.i(TAG,"setGrid >> 保存結果" + "moveItem:" + moveItem)
+
+        // 配置位置がGrid外に出ていないかチェック
+        if (row + item.fieldRow >= Global.ROW_COUNT) {
+            row = Global.ROW_COUNT - item.fieldRow
+        }
+
+        if (column + item.fieldColumn > Global.COLUMN_COUNT) {
+            column = Global.COLUMN_COUNT - item.fieldColumn
+        }
+
+        val moveItem = itemData.addItem(page, row, column, item)
+        pref.setAppsList()
+
+        android.util.Log.i(TAG,"setGrid >> 保存結果:" + "moveItem:" + moveItem)
 
 
         if (moveItem == ITEM_MOVE.MOVE_NG) {
-            android.util.Log.e(TAG,"setGrid >> 保存結果" + "データを戻す")
+            android.util.Log.e(TAG,"setGrid >> 保存結果:" + "データを戻す")
             item.row = prevRow
             item.column = prevColumn
             itemData.setItem(page, prevRow, prevColumn, item)
             prevAdapter.selectItem(view, gridCount, prevRow, prevColumn, false)
         } else {
-            android.util.Log.i(TAG,"setGrid >> 保存結果" + "データを追加")
+            android.util.Log.i(TAG,"setGrid >> 保存結果:" + "データを追加")
             item.row = row
             item.column = column
-            val moveItemEnable = moveItem == ITEM_MOVE.MOVING_ITEM_ENABLED
-            adapter.selectItem(view, gridCount, row, column, moveItemEnable)
 
-            if (item.widgetId != -1) {
-//                val list = itemData.getWidgetFieldList(item.id)
-//
-//                for(fieldItem in list) {
-//                    val blankView = getView(this.requireContext(), net.mikemobile.mikelauncher.R.layout.home_item_blank)
-//                    blankView?.let {
-//                        val cellSize = GridPoint(0,0)
-//                        adapter.addGrid(blankView, cellSize, fieldItem)
-//                    }
-//                }
+            if (item.type == HomeItemType.WIDGET.value) {
+
+                itemData.addWidgetFieldToItem(item)
             }
+
+            val moveItemEnable = moveItem == ITEM_MOVE.MOVING_ITEM_ENABLED
+            adapter.selectItem(view, gridCount, item.row, item.column, moveItemEnable)
+
+            if (item.type == HomeItemType.WIDGET.value) {
+                val list = itemData.getWidgetFieldList(item)
+
+                for(fieldItem in list) {
+                    val blankView = getView(this.requireContext(), net.mikemobile.mikelauncher.R.layout.home_item_blank)
+                    blankView?.let {
+                        val gridCount = GridCount(1, 1)
+                        adapter.addGrid(blankView, gridCount, fieldItem)
+                    }
+                }
+            }
+
         }
     }
 
@@ -1326,11 +1376,42 @@ class HomeFragment : Fragment(),
 
                 if (cellPointName == CELL_POINT_NAME.DESKTOP) {
                     Global.homeItemData.removeHomeItem(gridPage, item.row, item.column)
+
+                    if (item.type == HomeItemType.WIDGET.value) {
+                        Global.homeItemData.removeWidgetField(item)
+                        val list = Global.homeItemData.getWidgetFieldAddList(item)
+
+                        for(fieldItem in list) {
+                            desktopAdapter.removePageItem(
+                                fieldItem.page,
+                                fieldItem.row,
+                                fieldItem.column
+                            )
+                        }
+                    }
+
                     desktopAdapter.removePageItem(gridPage, item.row, item.column)
                 } else if (cellPointName == CELL_POINT_NAME.DOCK) {
                     Global.dockItemData.removeHomeItem(0, item.row, item.column)
+
+                    if (item.type == HomeItemType.WIDGET.value) {
+
+                        val list = Global.dockItemData.getWidgetFieldList(item)
+                        Global.dockItemData.removeWidgetField(item)
+
+                        for(fieldItem in list) {
+                            dockAdapter.removePageItem(
+                                fieldItem.page,
+                                fieldItem.row,
+                                fieldItem.column
+                            )
+                        }
+                    }
+
                     dockAdapter.removePageItem(0, item.row, item.column)
                 }
+
+
 
                 if (item.toolId == 2) {
                     Global.folderManager.removeAllItem(item.folderId)
