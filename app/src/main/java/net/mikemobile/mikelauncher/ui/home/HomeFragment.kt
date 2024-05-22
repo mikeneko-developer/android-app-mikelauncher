@@ -54,6 +54,7 @@ class HomeFragment : Fragment(),
 
     companion object {
         const val TAG = "HomeFragment"
+        const val TAG_DRAG = "_DragAndDrop"
         fun newInstance() = HomeFragment()
     }
 
@@ -679,55 +680,45 @@ class HomeFragment : Fragment(),
     /**
      * DragAndDrop開始
      */
-    private fun setDragAndDropData(adapter: GridAdapter, cellPointName: CELL_POINT_NAME, point: DimenPoint) {
+    private fun setDragAndDropData(adapter: GridAdapter, cellPointName: CELL_POINT_NAME, homeItem: HomeItem, point: DimenPoint) {
 
-        android.util.Log.i(TAG,"setDragAndDropData")
+        android.util.Log.i(TAG + TAG_DRAG,"setDragAndDropData")
+        android.util.Log.i(TAG + TAG_DRAG,"setDragAndDropDat >> GridPoint取得")
+        val cellPoint = if (homeItem.widgetField) {
+            var originalItem = Global.homeItemData.getItem(homeItem.fieldId)
 
-        val gridPoint = adapter.getGridPoint(point)
+            if (originalItem != null) {
+                GridPoint(originalItem.row, originalItem.column)
+            } else {
+                null
+            }
 
-        var homeItem = if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-            Global.homeItemData.getItem(gridPage, gridPoint.row, gridPoint.column)
-        } else if (cellPointName == CELL_POINT_NAME.DOCK) {
-            gridPoint.row = 0
-            Global.dockItemData.getItem(0, gridPoint.row, gridPoint.column)
         } else {
-            null
+            GridPoint(homeItem.row, homeItem.column)
         }
 
-        if (homeItem != null && homeItem.widgetField) {
-//            if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-//                homeItem = Global.homeItemData.getItem(homeItem.ownerId)
-//            } else if (cellPointName == CELL_POINT_NAME.DOCK) {
-//                homeItem = Global.dockItemData.getItem(homeItem.ownerId)
-//            } else {
-//                null
-//            }
-            homeItem = null
-        }
 
-        Log.i(TAG,"setDragAndDropData >> homeItem is null = " + (homeItem == null))
-        if (homeItem == null) return
+        if (cellPoint == null) return
 
-        val cellPointPoint = GridPoint(homeItem.row, homeItem.column)
 
         // Viewを取得
-        Log.i(TAG,"setDragAndDropData >> homeItem　data " +
+        Log.i(TAG + TAG_DRAG,"setDragAndDropData >> homeItem　data " +
                 "label:" + homeItem.label + " / type:" + homeItem.type + "\n" +
                 "widgetId:" + homeItem.widgetId + " / widgetField:" + homeItem.widgetField + "\n" +
                 "")
 
 
-        Log.i(TAG,"setDragAndDropData >> Viewの生成 row:" + cellPointPoint.row + " / column:" + cellPointPoint.column)
-        val view = adapter.getGridView(cellPointPoint.row, cellPointPoint.column) ?: return
+        Log.i(TAG + TAG_DRAG,"setDragAndDropData >> Viewの生成 row:" + cellPoint.row + " / column:" + cellPoint.column)
+        val view = adapter.getGridView(cellPoint.row, cellPoint.column) ?: return
 
         val positionX = point.x - (view.width / 2)
         val positionY = point.y - (view.height / 3)
 
         // Viewから画像を生成
-        android.util.Log.i(TAG,"setDragAndDropData >> 画像の生成")
+        android.util.Log.i(TAG + TAG_DRAG,"setDragAndDropData >> 画像の生成")
         val bitmap = getViewCapture(view) ?: return
 
-        android.util.Log.i(TAG,"setDragAndDropData >> ドラッグ&ドロップ用Viewのチェック")
+        android.util.Log.i(TAG + TAG_DRAG,"setDragAndDropData >> ドラッグ&ドロップ用Viewのチェック")
         if (dragAndDropView == null)return
 
         var dragDrop = dragAndDropView!!
@@ -739,8 +730,26 @@ class HomeFragment : Fragment(),
         startCellPointName = cellPointName
         moveToPrevItemDelete = true
 
-        android.util.Log.i(TAG,"画像を登録します")
+
+        // WidgetFiledなら位置を調整する値を追加する
+        if (homeItem.widgetField) {
+            var diffPoint = Global.calcDimenPointFieldToDifference(homeItem)
+            //dragDrop.differenceTouch(diffPoint)
+        } else {
+            dragDrop.differenceTouch(DimenPoint(0f, 0f))
+        }
+
+
+        android.util.Log.i(TAG + TAG_DRAG,"画像を登録します")
         dragDrop.setDragImage(bitmap, DimenPoint(positionX, positionY))
+
+        if (homeItem.widgetField) {
+            Global.homeItemData.getItem(homeItem.fieldId)?.let {
+                dragDrop.setImageStartPoint(Global.calcStartDimenPoint(it))
+            }
+        } else {
+            dragDrop.setImageStartPoint(Global.calcStartDimenPoint(homeItem))
+        }
 
         // フロートメニューを表示する
         openIconMenu(cellPointName, homeItem, point.x, point.y)
@@ -750,7 +759,17 @@ class HomeFragment : Fragment(),
      * DragAndDrop終了
      */
     private fun endDragAndDrop(adapter: GridAdapter, cellPointName: CELL_POINT_NAME, point: DimenPoint) {
-        val item = dragItem ?: return
+        var item = dragItem ?: return
+
+        val original = if (item.widgetField) {
+            Global.homeItemData.getItem(item.fieldId)
+        } else {
+            item
+        }
+
+        if (item == null) return
+        item = original!!
+
         val view =  dragView ?: return
         if (startCellPointName == CELL_POINT_NAME.NONE) return
 
@@ -759,25 +778,26 @@ class HomeFragment : Fragment(),
         // Gridの移動
 
         val gridCount = Global.calcSizeToGridCount(item.width, item.height)
-        android.util.Log.i(TAG,"endDragAndDrop >> gridCount.rowCount:" + gridCount.rowCount)
-        android.util.Log.i(TAG,"endDragAndDrop >> gridCount.columnCount:" + gridCount.columnCount)
+        android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> gridCount.rowCount:" + gridCount.rowCount)
+        android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> gridCount.columnCount:" + gridCount.columnCount)
 
         if (startCellPointName == cellPointName) {
-            android.util.Log.i(TAG,"endDragAndDrop >> 同じスペース :" + cellPointName)
+            android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> 同じスペース :" + cellPointName)
 
-            android.util.Log.i(TAG,"endDragAndDrop >> x:" + point.x)
-            android.util.Log.i(TAG,"endDragAndDrop >> y:" + point.y)
+            android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> x:" + point.x)
+            android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> y:" + point.y)
             val newPoint = Global.calcDimenToGridPoint(point)
             val prevPoint = GridPoint(item.row, item.column)
 
 
-            android.util.Log.i(TAG,"endDragAndDrop >> gridPage :" + gridPage)
-            android.util.Log.i(TAG,"endDragAndDrop >> row :" + newPoint.row)
-            android.util.Log.i(TAG,"endDragAndDrop >> column :" + newPoint.column)
+            android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> gridPage :" + gridPage)
+            android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> row :" + newPoint.row)
+            android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> column :" + newPoint.column)
 
 
             if (cellPointName == CELL_POINT_NAME.DESKTOP) {
                 // 移動元のデータを削除する
+
                 Global.homeItemData.removeHomeItem(gridPage, prevPoint.row, prevPoint.column)
 
                 if (Global.homeItemData.checkToolToFolder(gridPage, newPoint.row, newPoint.column, item)) {
@@ -803,7 +823,7 @@ class HomeFragment : Fragment(),
                     }
 
                 } else {
-                    android.util.Log.i(TAG,"endDragAndDrop >> setGrid-1")
+                    android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> setGrid-1")
                     setGrid(item,
                         view,
                         gridPage,
@@ -1032,35 +1052,45 @@ class HomeFragment : Fragment(),
     /**
      *
      */
-    override fun onLongTouchDown(cellPointName: CELL_POINT_NAME, point: DimenPoint) {
+    override fun onLongTouchDown(cellPointName: CELL_POINT_NAME, _point: DimenPoint) {
         android.util.Log.i(TAG,"onLongTouchDown　" + cellPointName)
 
         triggerVibration(requireContext())
 
+        var point = _point
+
         if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-            val gridPoint = desktopAdapter.getGridPoint(point)
+            val gridPoint = Global.calcDimenToGridPoint(point)
+
             var homeItem = Global.homeItemData.getItem(gridPage, gridPoint.row, gridPoint.column)
 
+            android.util.Log.i(TAG + TAG_DRAG,"widgetField x:" + homeItem?.widgetField)
 
             if (homeItem != null && homeItem.widgetField) {
+                android.util.Log.i(TAG + TAG_DRAG,"position x:" + point.x + " / y" + point.y)
 
-//                if (Global.homeItemData.checkNotWidgetData(homeItem.ownerId)) {
-//                    // オリジナルのデータがない
-//                    Global.homeItemData.removeHomeItem(gridPage, homeItem.row, homeItem.column)
-//                    homeItem =  null
-//                } else {
-//                    homeItem = Global.homeItemData.getItem(homeItem.ownerId)
-//                }
+                var newPoint = Global.calcDimenPointFieldToOriginal(_point, homeItem)
+
+                var originalItem = Global.homeItemData.getItem(homeItem.fieldId)
+
+                if (newPoint == null) {
+                    // オリジナルのデータがない
+                    Global.homeItemData.removeHomeItem(gridPage, homeItem.row, homeItem.column)
+                    homeItem =  null
+                } else if (originalItem != null){
+                    //point = newPoint
+
+                }
 
             }
-            android.util.Log.i(TAG,"homeItem is null = " + (homeItem == null))
+            android.util.Log.i(TAG + TAG_DRAG,"homeItem is null = " + (homeItem == null))
 
             if (homeItem == null) {
                 openMenuDialog()
                 return
             }
 
-            setDragAndDropData(desktopAdapter, cellPointName, point)
+            setDragAndDropData(desktopAdapter, cellPointName, homeItem, point)
         } else if (cellPointName == CELL_POINT_NAME.DOCK) {
             val gridPoint = dockAdapter.getGridPoint(point)
             var homeItem = Global.dockItemData.getItem(0, 0, gridPoint.column)
@@ -1076,7 +1106,7 @@ class HomeFragment : Fragment(),
                 return
             }
 
-            setDragAndDropData(dockAdapter, cellPointName, point)
+            setDragAndDropData(dockAdapter, cellPointName, homeItem, point)
         } else {
             android.util.Log.i(TAG,"cellPointName = " + cellPointName)
         }
@@ -1110,34 +1140,14 @@ class HomeFragment : Fragment(),
                         moveToPrevItemDelete = false
 
                         if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-                            desktopAdapter.removePageItem(gridPage, dragItem!!.row, dragItem!!.column)
 
-                            if (dragItem!!.type == HomeItemType.WIDGET.value) {
-                                val list = Global.homeItemData.getWidgetFieldList(dragItem!!)
+                            moveDragAndDropToItemAction(desktopAdapter, Global.homeItemData, gridPage, dragItem!!)
 
-                                for(fieldItem in list) {
-                                    desktopAdapter.removePageItem(
-                                        fieldItem.page,
-                                        fieldItem.row,
-                                        fieldItem.column
-                                    )
-                                }
-                            }
 
                         } else if (cellPointName == CELL_POINT_NAME.DOCK) {
-                            dockAdapter.removePageItem(0, dragItem!!.row, dragItem!!.column)
 
-                            if (dragItem!!.type == HomeItemType.WIDGET.value) {
-                                val list = Global.dockItemData.getWidgetFieldList(dragItem!!)
+                            moveDragAndDropToItemAction(dockAdapter, Global.dockItemData, 0, dragItem!!)
 
-                                for(fieldItem in list) {
-                                    dockAdapter.removePageItem(
-                                        fieldItem.page,
-                                        fieldItem.row,
-                                        fieldItem.column
-                                    )
-                                }
-                            }
                         }
                     }
                 }
@@ -1175,6 +1185,33 @@ class HomeFragment : Fragment(),
         }
     }
 
+    private fun moveDragAndDropToItemAction(
+        adapter: GridAdapter,
+        itemData: DataManagement, gridPage: Int, _item: HomeItem) {
+
+        val item = if (_item.widgetField) {
+            itemData.getItem(_item.fieldId)
+        } else {
+            _item
+        }
+
+        if (item == null) return
+
+        adapter.removePageItem(gridPage, item.row, item.column)
+
+        if (item.type == HomeItemType.WIDGET.value) {
+            val list = itemData.getWidgetFieldList(item)
+
+            for(fieldItem in list) {
+                adapter.removePageItem(
+                    fieldItem.page,
+                    fieldItem.row,
+                    fieldItem.column
+                )
+            }
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
@@ -1206,14 +1243,14 @@ class HomeFragment : Fragment(),
 
         var row = newRow
         var column = newColumn
-        android.util.Log.i(TAG,"setGrid >>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+        android.util.Log.i(TAG + TAG_DRAG,"setGrid >>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
         // 移動元のデータを削除する
-        android.util.Log.i(TAG,"setGrid >> データを削除する" + "prevpage:" + prevpage + " / prevRow:" + prevRow + " / prevColumn:" + prevColumn)
+        android.util.Log.i(TAG + TAG_DRAG,"setGrid >> データを削除する" + "prevpage:" + prevpage + " / prevRow:" + prevRow + " / prevColumn:" + prevColumn)
         deleteItemData.removeHomeItem(prevpage, prevRow, prevColumn)
 
-        android.util.Log.i(TAG,"setGrid >> データを追加する" + "page:" + page + " / row:" + row + " / column:" + column)
-        android.util.Log.i(TAG,"setGrid >> アイテム"
+        android.util.Log.i(TAG + TAG_DRAG,"setGrid >> データを追加する" + "page:" + page + " / row:" + row + " / column:" + column)
+        android.util.Log.i(TAG + TAG_DRAG,"setGrid >> アイテム"
                 + "\n id:" + item.id
                 + "\n label" + item.label
                 + "\n widgetId:" + item.widgetId
@@ -1235,22 +1272,36 @@ class HomeFragment : Fragment(),
         val moveItem = itemData.addItem(page, row, column, item)
         pref.setAppsList()
 
-        android.util.Log.i(TAG,"setGrid >> 保存結果:" + "moveItem:" + moveItem)
+        android.util.Log.i(TAG + TAG_DRAG,"setGrid >> 保存結果:" + "moveItem:" + moveItem)
 
 
         if (moveItem == ITEM_MOVE.MOVE_NG) {
-            android.util.Log.e(TAG,"setGrid >> 保存結果:" + "データを戻す")
+            android.util.Log.e(TAG + TAG_DRAG,"setGrid >> 保存結果:" + "データを戻す")
             item.row = prevRow
             item.column = prevColumn
             itemData.setItem(page, prevRow, prevColumn, item)
             prevAdapter.selectItem(view, gridCount, prevRow, prevColumn, false)
+
+            if (item.type == HomeItemType.WIDGET.value) {
+                itemData.addWidgetFieldToItem(item)
+
+                val list = itemData.getWidgetFieldList(item)
+
+                for(fieldItem in list) {
+                    val blankView = getView(this.requireContext(), net.mikemobile.mikelauncher.R.layout.home_item_blank)
+                    blankView?.let {
+                        val gridCount = GridCount(1, 1)
+                        prevAdapter.addGrid(blankView, gridCount, fieldItem)
+                    }
+                }
+            }
+
         } else {
-            android.util.Log.i(TAG,"setGrid >> 保存結果:" + "データを追加")
+            android.util.Log.i(TAG + TAG_DRAG,"setGrid >> 保存結果:" + "データを追加")
             item.row = row
             item.column = column
 
             if (item.type == HomeItemType.WIDGET.value) {
-
                 itemData.addWidgetFieldToItem(item)
             }
 

@@ -51,6 +51,58 @@ class Global {
             return GridPoint(row, column)
         }
 
+        fun calcDimenPointFieldToOriginal(touchPoint: DimenPoint, fieldItem: HomeItem): DimenPoint? {
+            var originalItem = homeItemData.getItem(fieldItem.fieldId)
+
+            if (homeItemData.checkNotWidgetData(fieldItem.fieldId)) {
+                // オリジナルのデータがない
+            } else if (originalItem != null){
+
+                if (originalItem.fieldRow > 1 || originalItem.fieldColumn > 1) {
+                    val gridSize = Global.gridSize
+
+                    android.util.Log.i(HomeFragment.TAG + HomeFragment.TAG_DRAG,"original position x:" + touchPoint.x + " / y:" + touchPoint.y)
+
+                    var differenceSize = calcDimenPointFieldToDifference(fieldItem)
+
+                    android.util.Log.i(HomeFragment.TAG + HomeFragment.TAG_DRAG,"minus position horizontal:" + differenceSize.x + " / vetical:" + differenceSize.y)
+
+                    var point = DimenPoint(touchPoint.x + (differenceSize.x / 2), touchPoint.y + differenceSize.y)
+
+                    android.util.Log.i(HomeFragment.TAG + HomeFragment.TAG_DRAG,"change position x:" + point.x + " / y:" + point.y)
+
+                    return point
+                }
+
+            }
+            return null
+        }
+
+        fun calcStartDimenPoint(homeItem: HomeItem): DimenPoint {
+
+            val gridSize = Global.gridSize
+
+            var pointY = homeItem.row * gridSize.height
+            var pointX = homeItem.column * gridSize.width
+
+            var point = DimenPoint(pointX, pointY)
+
+            return point
+        }
+
+        fun calcDimenPointFieldToDifference(fieldItem: HomeItem): DimenPoint {
+            var originalItem = homeItemData.getItem(fieldItem.fieldId)
+
+            val gridSize = Global.gridSize
+
+            var minusRow = (fieldItem.row - originalItem!!.row) * gridSize.height
+            var minusColumn = (fieldItem.column - originalItem!!.column) * gridSize.width
+
+            var point = DimenPoint(-minusColumn, - minusRow)
+
+            return point
+        }
+
         fun calcSizeToGridCount(width: Int, height: Int): GridCount {
             var rowCount = 1
             var columnCount = 1
@@ -107,10 +159,11 @@ class Global {
 //                return null
 //            }
 
+
+
             return try {
-                val packageManager = context.packageManager
-                val appInfo = packageManager.getApplicationInfo(packageName, 0)
-                appInfo.loadIcon(packageManager)
+                val pm = context.packageManager
+                pm.getApplicationIcon(packageName)
             } catch (e: PackageManager.NameNotFoundException) {
                 e.printStackTrace()
                 null

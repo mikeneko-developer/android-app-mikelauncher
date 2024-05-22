@@ -28,6 +28,11 @@ class DragAndDropView: ConstraintLayout {
     private val paint = Paint()
     private val iconPaint = Paint()
 
+    private val touchPaint = Paint()
+    private val iconStartingPaint = Paint()
+
+    var touchPoint: DimenPoint? = null
+
     constructor(context: Context): super(context){
         setPaintData()
     }
@@ -42,6 +47,8 @@ class DragAndDropView: ConstraintLayout {
         paint.color = Color.DKGRAY
         iconPaint.color = Color.DKGRAY
         iconPaint.alpha = 150
+
+        touchPaint.color = Color.parseColor("#AA0066FF")
     }
 
     private var listener: OnDragAndDropViewListener? = null
@@ -73,6 +80,9 @@ class DragAndDropView: ConstraintLayout {
     private var onDownEnabled = false
     private var onLongTouchEnabled = false
     private var onTouchMoveEnable = false
+
+
+    private var differenceDimenPoint = DimenPoint(0f, 0f)
 
     fun setDisableTouchEvent() {
         onTouchEventDisable = true
@@ -165,6 +175,10 @@ class DragAndDropView: ConstraintLayout {
         return dragAnimation
     }
 
+    fun differenceTouch(differenceDimenPoint: DimenPoint) {
+        this.differenceDimenPoint = differenceDimenPoint
+    }
+
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
     }
@@ -182,6 +196,44 @@ class DragAndDropView: ConstraintLayout {
 
     public override fun dispatchDraw(canvas: Canvas) {
         super.dispatchDraw(canvas)
+
+        if (
+            DEBUG_MODE
+            //&& (onDownEnabled || onTouchMoveEnable)
+        ) {
+            touchPoint?.let { move ->
+
+                if (onTouchMoveEnable) {
+                    touchPaint.color = Color.YELLOW
+                } else if (onLongTouchEnabled) {
+                    touchPaint.color = Color.MAGENTA
+                } else if (onDownEnabled) {
+                    touchPaint.color = Color.GREEN
+                } else {
+                    touchPaint.color = Color.CYAN
+                }
+
+                val positionX = move.x
+                val positionY = move.y
+
+                //
+                canvas.drawCircle(positionX, positionY, 130f, touchPaint)
+            }
+
+            /**
+             * 対象物の起点となるポイント
+             */
+//            touchPoint?.let { move ->
+//
+//                val positionX = move.x
+//                val positionY = move.y
+//
+//                //
+//                canvas.drawCircle(positionX, positionY, 20f, iconStartingPaint)
+//            }
+
+
+        }
 
         if (!calcEnable) return
 
@@ -215,57 +267,85 @@ class DragAndDropView: ConstraintLayout {
         if (onTouchEventDisable) {
             android.util.Log.i(TAG, "タッチ無効")
         } else if (dragAnimation) {
+
+            drawShadowGridPoint(canvas)
+            drawIcon(canvas)
+
             data?.let { image ->
 
-                if (cellPointName != CELL_POINT_NAME.DOT) {
+//                if (cellPointName != CELL_POINT_NAME.DOT) {
+//
+//                    cellPoint?.let { cell ->
+//                        outlineImage?.let { img ->
+//                            val positionX = cell.column * oneCellSize.width
+//                            var positionY = cell.row * oneCellSize.height
+//
+//                            if (cellPointName == CELL_POINT_NAME.DOCK) {
+//                                positionY = oneCellSize.height * row + dotHeight
+//                            }
+//
+//                            val matrix = Matrix()
+//                            matrix.postTranslate(positionX, positionY)
+//
+//                            //
+//                            android.util.Log.i(TAG, "配置予定位置の描画")
+//                            canvas.drawBitmap(img, matrix, iconPaint)
+//                        }
+//                    }
+//                }
 
-                    cellPoint?.let { cell ->
-                        outlineImage?.let { img ->
-                            val positionX = cell.column * oneCellSize.width
-                            var positionY = cell.row * oneCellSize.height
 
-                            if (cellPointName == CELL_POINT_NAME.DOCK) {
-                                positionY = oneCellSize.height * row + dotHeight
-                            }
-
-                            val matrix = Matrix()
-                            matrix.postTranslate(positionX, positionY)
-
-                            //
-                            android.util.Log.i(TAG, "配置予定位置の描画")
-                            canvas.drawBitmap(img, matrix, iconPaint)
-                        }
-                    }
-                }
-
-                iconPoint?.let { iconPoint ->
-                    movePosition?.let { move ->
-                        val scale = 1.2f
-
-                        val scaleChangeWidth = ((image.width * scale) - image.width) / 2
-                        val scaleChangeHeight = ((image.height * scale) - image.height) / 2
-
-                        val positionX = -scaleChangeWidth + iconPoint.x + move.x
-                        val positionY = -scaleChangeHeight + iconPoint.y + move.y - (image.height / 3)
-
-                        val matrix = Matrix()
-                        matrix.setScale(scale, scale)
-
-                        matrix.postTranslate(positionX, positionY)
-
-                        //
-                        android.util.Log.i(TAG, "アイコン描画")
-                        canvas.drawBitmap(image, matrix, iconPaint)
-                    }
-                }
+//                iconPoint?.let { iconPoint ->
+//                    movePosition?.let { move ->
+//                        val scale = 1.2f
+//
+//                        val scaleChangeWidth = ((image.width * scale) - image.width) / 2
+//                        val scaleChangeHeight = ((image.height * scale) - image.height) / 2
+//
+//                        val positionX = -scaleChangeWidth + iconPoint.x + move.x
+//                        val positionY = -scaleChangeHeight + iconPoint.y + move.y - (image.height / 3)
+//
+//                        val matrix = Matrix()
+//                        matrix.setScale(scale, scale)
+//
+//                        matrix.postTranslate(positionX, positionY)
+//
+//                        //
+//                        android.util.Log.i(TAG, "アイコン描画")
+//                        canvas.drawBitmap(image, matrix, iconPaint)
+//                    }
+//                }
             }
         }
     }
 
     override fun onTouchEvent(motionEvent: MotionEvent): Boolean {
-
         if (onTouchEventDisable) {
             return super.onTouchEvent(motionEvent)
+        }
+
+        when (motionEvent.action) {
+            MotionEvent.ACTION_DOWN -> {
+                touchPoint = DimenPoint(motionEvent.x, motionEvent.y)
+                invalidate()
+            }
+            MotionEvent.ACTION_MOVE -> {
+                touchPoint = DimenPoint(motionEvent.x, motionEvent.y)
+                invalidate()
+
+            }
+            MotionEvent.ACTION_UP -> {
+                touchPoint = null
+                invalidate()
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                touchPoint = null
+                invalidate()
+            }
+            else -> {
+                touchPoint = null
+                invalidate()
+            }
         }
 
         // タッチ位置の取得と計算
@@ -318,17 +398,15 @@ class DragAndDropView: ConstraintLayout {
                 // 手を離したのでタイマーはキャンセルする
                 cancelTimer()
 
-                val tapTime = System.currentTimeMillis() - onDownTime
-                android.util.Log.i(TAG,"tapTime : " + tapTime)
-                if (!checkMinMove() && ( 30 < tapTime && tapTime <= 130)) {
-                    android.util.Log.i(TAG,"ACTION_CLICK")
-                    listener?.onTouchClick(cellPointName, DimenPoint(motionEvent.x, motionEvent.y))
-                }
+                // クリック判定イベント
+                onTouchClickEvent(motionEvent)
 
-                if (data != null) {
-                    listener?.onTouchUp(cellPointName, DimenPoint(motionEvent.x, motionEvent.y))
-                    clear = true
-                }
+                // 手を離した判定イベント
+                onTouchUpEvent()
+
+                // データのクリア判定処理
+                clear = (data != null)
+
             }
             MotionEvent.ACTION_CANCEL -> {
                 android.util.Log.i(TAG,"ACTION_CANCEL")
@@ -435,8 +513,8 @@ class DragAndDropView: ConstraintLayout {
             if (motionEvent.y < height - dotHeight - oneCellSize.height) {
                 android.util.Log.i("CELL_TEST","selectCell >> DESKTOP")
                 // 通常のページ
-                val column = (motionEvent.x / oneCellSize.width).toInt()
-                val row = (motionEvent.y / oneCellSize.height).toInt()
+                val column = ((motionEvent.x + differenceDimenPoint.x) / oneCellSize.width).toInt()
+                val row = ((motionEvent.y  + differenceDimenPoint.y) / oneCellSize.height).toInt()
 
                 cellPoint = GridPoint(row, column)
                 cellPointName = CELL_POINT_NAME.DESKTOP
@@ -544,6 +622,117 @@ class DragAndDropView: ConstraintLayout {
         if (timer != null) {
             timer!!.cancel()
             timer = null
+        }
+    }
+
+
+    //////////////////////////////////////////////////////////////////////v
+    // DragAndDropで描画する画像に関するデータ
+    private var imageStartPoint: DimenPoint? = null
+
+    fun setImageStartPoint(startPoint: DimenPoint) {
+        imageStartPoint = startPoint
+    }
+
+
+    /**
+     * DragAndDropで描画するデータ
+     */
+    private fun drawIcon(canvas: Canvas) {
+        val image = data?: return
+        val move = movePosition?: return
+        val startPoint = imageStartPoint?: return
+
+
+        val scale = 1.3f
+
+        val scaleChangeWidth = ((image.width * scale) - image.width) / 2
+        val scaleChangeHeight = ((image.height * scale) - image.height) / 2
+
+        val positionX = -scaleChangeWidth + startPoint.x + move.x
+        val positionY = -scaleChangeHeight + startPoint.y + move.y
+
+        val matrix = Matrix()
+        matrix.setScale(scale, scale)
+
+        matrix.postTranslate(positionX, positionY)
+
+        //
+        android.util.Log.i(TAG, "アイコン描画")
+        canvas.drawBitmap(image, matrix, iconPaint)
+
+    }
+    /**
+     * DragAndDropで描画するデータ
+     */
+    private fun drawShadowGridPoint(canvas: Canvas) {
+        android.util.Log.i(TAG, "drawShadowGridPoint　画像の判定")
+        val image = data?: return
+
+        android.util.Log.i(TAG, "drawShadowGridPoint　影画像の判定")
+        val shadowImage = outlineImage?: return
+
+        android.util.Log.i(TAG, "drawShadowGridPoint　移動範囲の判定")
+        val move = movePosition?: return
+
+        android.util.Log.i(TAG, "drawShadowGridPoint　画像の最初の位置データの判定")
+        val startPoint = imageStartPoint?: return
+
+        val positionX = startPoint.x + move.x + (oneCellSize.width / 2)
+        val positionY = startPoint.y + move.y + (oneCellSize.height / 2)
+
+        val column = (positionX / oneCellSize.width).toInt()
+        val row = (positionY / oneCellSize.height).toInt()
+
+        val cellPositionX = column * oneCellSize.width
+        var cellPositionY = row * oneCellSize.height
+
+
+        val matrix = Matrix()
+        matrix.postTranslate(cellPositionX, cellPositionY)
+
+        android.util.Log.i(TAG, "影の描画")
+        canvas.drawBitmap(shadowImage, matrix, iconPaint)
+
+    }
+
+    /**
+     * 手を離した時にListenerを返すメソッド
+     */
+    private fun onTouchUpEvent() {
+        android.util.Log.i(TAG, "drawShadowGridPoint　画像の判定")
+        val image = data?: return
+
+        android.util.Log.i(TAG, "drawShadowGridPoint　移動範囲の判定")
+        val move = movePosition?: return
+
+        android.util.Log.i(TAG, "drawShadowGridPoint　画像の最初の位置データの判定")
+        val startPoint = imageStartPoint?: return
+
+        val positionX = startPoint.x + move.x + (oneCellSize.width / 2)
+        val positionY = startPoint.y + move.y + (oneCellSize.height / 2)
+
+        val column = (positionX / oneCellSize.width).toInt()
+        val row = (positionY / oneCellSize.height).toInt()
+
+        val cellPositionX = column * oneCellSize.width
+        var cellPositionY = row * oneCellSize.height
+
+        listener?.onTouchUp(cellPointName, DimenPoint(positionX, positionY))
+    }
+
+    /**
+     * 手を離した時にクリックイベント判定をし、Listenerを返すメソッド
+     */
+    private fun onTouchClickEvent(motionEvent: MotionEvent) {
+
+        val tapTime = System.currentTimeMillis() - onDownTime
+        android.util.Log.i(TAG,"tapTime : " + tapTime)
+
+        val dimenPoint = DimenPoint(motionEvent.x + differenceDimenPoint.x, motionEvent.y + differenceDimenPoint.y)
+        if (!checkMinMove() && ( 30 < tapTime && tapTime <= 130)) {
+            android.util.Log.i(TAG,"ACTION_CLICK")
+            listener?.onTouchClick(cellPointName, dimenPoint)
         }
     }
 }
