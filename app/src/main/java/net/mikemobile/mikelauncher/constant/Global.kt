@@ -151,15 +151,6 @@ class Global {
          * アイコン取得
          */
         fun getAppIcon(context: Context, packageName: String): Drawable? {
-//            try {
-//                val pm = context.packageManager
-//                val icon = pm.getApplicationIcon(packageName)
-//                return icon
-//            } catch(e: Exception) {
-//                return null
-//            }
-
-
 
             return try {
                 val pm = context.packageManager
@@ -226,6 +217,16 @@ class Global {
             val uuid = UUID.randomUUID()
             return uuid.hashCode() // ハッシュコードをIDとして使用
 
+        }
+
+        fun checkWidget(widgetId: Int): Boolean {
+            if (homeItemData.checkItemToWidget(widgetId)) {
+                return true
+            } else if (dockItemData.checkItemToWidget(widgetId)) {
+                return true
+            }
+
+            return false
         }
     }
 }

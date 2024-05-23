@@ -335,8 +335,21 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
     }
 
 
-    fun checkWidget(position: Int, widgetId: Int): Boolean {
-        val key = "" + position
+    fun checkItemToWidget(widgetId: Int): Boolean {
+        val pageCountMax = if (cellPointName == CELL_POINT_NAME.DOCK) {
+            1
+        } else {
+            5
+        }
+
+        for(page in 0 until pageCountMax) {
+            if (checkWidget(page, widgetId)) return true
+        }
+        return false
+    }
+
+    fun checkWidget(page: Int, widgetId: Int): Boolean {
+        val key = "" + page
 
         val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
             HashMap<String, HomeItem>()

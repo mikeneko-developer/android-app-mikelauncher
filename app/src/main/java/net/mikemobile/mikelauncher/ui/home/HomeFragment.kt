@@ -363,11 +363,6 @@ class HomeFragment : Fragment(),
     val REQUEST_CODE_ADD_APPWIDGET = 1
     val REQUEST_CODE_ADD_APPWIDGET_2 = 2
 
-    var widgetWidth = 0
-    var widgetHeight = 0
-
-    var appWidgetId: Int = -1
-    var widgetView: AppWidgetHostView? = null
 
     fun openWidget() {
         Log.i("TESTESTEST", "openWidget")
@@ -433,51 +428,43 @@ class HomeFragment : Fragment(),
         mAppWidgetHost!!.startListening()
 
         // ウィジェットの復帰
-        for (id in mAppWidgetHost!!.appWidgetIds) {
-            Log.i("TESTTEST", "onCreate  id:" + id)
+        for (appWidgetId in mAppWidgetHost!!.appWidgetIds) {
+            Log.i("TESTTEST", "setupWidget  id:" + id)
             //mAppWidgetHost!!.deleteAppWidgetId(id) //…(8)
 
 
-            val appWidgetId2 = id
-            val appWidgetProviderInfo2 =
+            val appWidgetProviderInfo =
                 AppWidgetManager
                     .getInstance(this.requireActivity().applicationContext)
-                    .getAppWidgetInfo(appWidgetId2)
+                    .getAppWidgetInfo(appWidgetId)
 
             try {
-                val widgetLabel = appWidgetProviderInfo2.label
-                val widgetIcon = this.requireActivity().packageManager.getDrawable(
-                    appWidgetProviderInfo2.provider.packageName,
-                    appWidgetProviderInfo2.icon,
-                    null
-                )
-                widgetWidth = appWidgetProviderInfo2.minWidth
-                widgetHeight = appWidgetProviderInfo2.minHeight
 
+                if (Global.checkWidget(appWidgetId)) {
+                    var hostView = mAppWidgetHost!!.createView(this.requireActivity().applicationContext, appWidgetId, appWidgetProviderInfo)
 
-                appWidgetId = appWidgetId2
-
-                var hostView = mAppWidgetHost!!.createView(this.requireActivity().applicationContext, appWidgetId2, appWidgetProviderInfo2)
-
-                //hostView.setMinimumHeight(appWidgetProviderInfo2.minHeight)
-                if (Build.VERSION.SDK_INT > 15) {
-                    //hostView.updateAppWidgetSize(null,
-                    //    widgetWidth, appWidgetProviderInfo2.minHeight,
-                    //    widgetHeight, appWidgetProviderInfo2.minHeight)
+                    if (Build.VERSION.SDK_INT > 15) {
+                        //hostView.updateAppWidgetSize(null,
+                        //    widgetWidth, appWidgetProviderInfo2.minHeight,
+                        //    widgetHeight, appWidgetProviderInfo2.minHeight)
+                    }
+                    hostView.setAppWidget(appWidgetId, appWidgetProviderInfo)
+                } else {
+                    removeWidget(appWidgetId)
                 }
-                hostView.setAppWidget(appWidgetId2, appWidgetProviderInfo2)
+
+
                 //addWodiget(hostView, id, true, 0, 0, 1, 1, widgetWidth, widgetHeight)
                 //addWodiget(hostView, id, true, 0, 0, 1, 1, 200, 200)
             }catch(e: Exception) {
                 Log.e("TESTTEST", "error:" + e.message)
-
-                removeWidget(id)
+                removeWidget(appWidgetId)
             }
         }
     }
 
-    fun addWodiget(widgetData: WidgetData, widgetId: Int) {
-        Log.i("TESTTEST", "addWodiget  appWidgetId:" + appWidgetId)
+    private fun addWodiget(widgetData: WidgetData, widgetId: Int) {
+        Log.i("TESTTEST", "addWodiget  widgetId:" + widgetId)
 
         val gridCount = Global.calcSizeToGridCount(widgetData.width, widgetData.height)
 
@@ -489,7 +476,6 @@ class HomeFragment : Fragment(),
 
                 pref.setAppsList()
                 desktopAdapter.addGrid(widgetData.view, gridCount, addItem)
-
 
                 if (addItem.type == HomeItemType.WIDGET.value) {
                     Global.homeItemData.addWidgetFieldToItem(addItem)
@@ -511,23 +497,12 @@ class HomeFragment : Fragment(),
                 desktopAdapter.changeGrid(widgetData.view, gridCount, homeItem)
             }
         }
-
-
-        //mWorkspace!!.addView(child, lp)
-
-        //mWorkspace!!.layoutParams.width = width * 2
-        //mWorkspace!!.layoutParams.height = height * 2
-
-        //mWorkspace!!.addView(child, if (insert) 0 else -1, lp)
-        //child.setOnLongClickListener(this)
     }
 
-    fun removeWidget(appWidgetId: Int) {
-        Log.i("TESTTEST", "removeWidget  appWidgetId:" + appWidgetId)
+    private fun removeWidget(appWidgetId: Int) {
+        Log.e("TESTTEST", "removeWidget  appWidgetId:" + appWidgetId)
 
-        if (appWidgetId != -1) mAppWidgetHost!!.deleteAppWidgetId(appWidgetId) //…(8)
-
-        //mWorkspace!!.removeAllViews()
+        if (appWidgetId != -1) mAppWidgetHost!!.deleteAppWidgetId(appWidgetId)
     }
 
 
@@ -672,7 +647,7 @@ class HomeFragment : Fragment(),
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
 
-    var dragAndDrop = false
+    var dragAndDropFlag = false
     var dragItem: HomeItem? = null
     var dragView: View? = null
     var startCellPointName = CELL_POINT_NAME.NONE
@@ -735,7 +710,7 @@ class HomeFragment : Fragment(),
         var dragDrop = dragAndDropView!!
 
         // フィールド変数に一時登録
-        dragAndDrop = true
+        dragAndDropFlag = true
         dragView = view
         dragItem = homeItem
         startCellPointName = cellPointName
@@ -944,7 +919,7 @@ class HomeFragment : Fragment(),
         pref.setAppsList()
 
 
-        dragAndDrop = false
+        dragAndDropFlag = false
         dragItem = null
         dragView = null
 
@@ -976,7 +951,7 @@ class HomeFragment : Fragment(),
         pref.setAppsList()
 
 
-        dragAndDrop = false
+        dragAndDropFlag = false
         dragItem = null
         dragView = null
     }
@@ -1012,16 +987,35 @@ class HomeFragment : Fragment(),
     }
 
 
-    override fun onTouchDown(point: DimenPoint) {
+    override fun onTouchDown(cellPointName: CELL_POINT_NAME, point: DimenPoint) {
         closeOverlayView()
     }
-    override fun onTouchMove(point: DimenPoint) {}
+    override fun onTouchMove(cellPointName: CELL_POINT_NAME, point: DimenPoint) {
+        closeOverlayView()
+        if (dragAndDropView!!.getDragAnimationFlag()) {
+            if (moveToPrevItemDelete) {
+                moveToPrevItemDelete = false
+                if (cellPointName == CELL_POINT_NAME.DESKTOP) {
+
+                    moveDragAndDropToItemAction(desktopAdapter, Global.homeItemData, gridPage, dragItem!!)
+
+
+                } else if (cellPointName == CELL_POINT_NAME.DOCK) {
+                    closeOverlayView()
+
+                    moveDragAndDropToItemAction(dockAdapter, Global.dockItemData, 0, dragItem!!)
+
+                }
+            }
+        }
+
+    }
 
     override fun onTouchUp(cellPointName: CELL_POINT_NAME, point: DimenPoint) {
 
         if (openIconMenuEnable) {
-            dragAndDrop = false
-        } else if (dragAndDrop) {
+            dragAndDropFlag = false
+        } else if (dragAndDropFlag) {
             if (cellPointName == CELL_POINT_NAME.DESKTOP) {
                 endDragAndDrop(desktopAdapter, cellPointName, point)
             } else if (cellPointName == CELL_POINT_NAME.DOCK) {
@@ -1034,7 +1028,7 @@ class HomeFragment : Fragment(),
      * DragAndDropViewのクリック判定
      */
     override fun onTouchClick(cellPointName: CELL_POINT_NAME, point: DimenPoint) {
-        if (dragAndDrop) return
+        if (dragAndDropFlag) return
 
         val viewSize = viewPager!!.getSize()
         val oneWidth = viewSize.width / Global.COLUMN_COUNT
@@ -1151,27 +1145,13 @@ class HomeFragment : Fragment(),
                 }
             }
             MotionEvent.ACTION_MOVE -> {
-                if (moveLog)android.util.Log.i(TAG,"onSelectGridPoint >> gridPoint: MotionEvent.ACTION_MOVE")
+                if (moveLog)android.util.Log.i(TAG + "MINMOVETEST","onSelectGridPoint >> gridPoint: MotionEvent.ACTION_MOVE")
                 moveLog = false
 
-                closeOverlayView()
-                if (dragAndDrop) {
+                if (dragAndDropFlag) {
                     dragAndDropView?.setDragAnimationEnable()
 
-                    if (moveToPrevItemDelete) {
-                        moveToPrevItemDelete = false
 
-                        if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-
-                            moveDragAndDropToItemAction(desktopAdapter, Global.homeItemData, gridPage, dragItem!!)
-
-
-                        } else if (cellPointName == CELL_POINT_NAME.DOCK) {
-
-                            moveDragAndDropToItemAction(dockAdapter, Global.dockItemData, 0, dragItem!!)
-
-                        }
-                    }
                 }
             }
 
@@ -1179,7 +1159,6 @@ class HomeFragment : Fragment(),
                 dragAndDropView?.setDragAnimationDisable()
                 if (!openIconMenuEnable) {
                     android.util.Log.i(TAG, "onSelectGridPoint >> gridPoint: MotionEvent.ACTION_UP")
-
 
                     when (cellPointName) {
                         CELL_POINT_NAME.DESKTOP -> {
