@@ -8,6 +8,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import net.mikemobile.mikelauncher.R
+import net.mikemobile.mikelauncher.constant.Global
 import net.mikemobile.mikelauncher.data.HomeItem
 
 
@@ -34,7 +35,26 @@ class FolderAdapter(
         icon.setImageDrawable(list[position].icon)
         label.text = list[position].label
 
-        //holder.itemView.layoutParams.height = onGetHeight().toInt()
+        val homeItem = list[position]
+
+        val count = if (Global.notificationCountList.containsKey(homeItem.packageName)) {
+            if (Global.notificationCountList[homeItem.packageName] != null) {
+                Global.notificationCountList[homeItem.packageName]!!.count
+            } else {
+                0
+            }
+        } else {
+            0
+        }
+
+        val noti_count = holder.itemView.findViewById<TextView>(R.id.noti_count)
+        if (count == 0) {
+            noti_count.text = ""
+            noti_count.visibility = View.GONE
+        } else {
+            noti_count.text = "" + count
+            noti_count.visibility = View.VISIBLE
+        }
 
         holder.itemView.setOnClickListener {
             callback.invoke(list[position])

@@ -5,6 +5,8 @@ import android.graphics.drawable.Drawable
 import net.mikemobile.mikelauncher.constant.Global
 import net.mikemobile.mikelauncher.constant.GridCount
 import net.mikemobile.mikelauncher.constant.GridPoint
+import net.mikemobile.mikelauncher.constant.HomeItemType
+import net.mikemobile.mikelauncher.constant.ToolType
 import net.mikemobile.mikelauncher.constant.WidgetData
 import net.mikemobile.mikelauncher.ui.applist.AppInfo
 
@@ -176,6 +178,10 @@ data class HomeItem(
         }
     }
 
+
+    fun isFolder(): Boolean {
+        return type == HomeItemType.TOOL.value && toolId == ToolType.FOLDER.value
+    }
 
     fun copyField(row: Int, column: Int): HomeItem{
         val item = this.copy()

@@ -27,6 +27,8 @@ class Global {
         val dockItemData = DataManagement(CELL_POINT_NAME.DOCK)
         val folderManager = FolderManagement()
 
+        val notificationCountList = HashMap<String, NotificationCountData>()
+
         val gridSize: GridSize = GridSize(-1f, -1f)
 
         var selectItem: MutableLiveData<HomeItem> = MutableLiveData<HomeItem>(null)
@@ -161,6 +163,22 @@ class Global {
             }
         }
 
+        fun getToolIcon(context: Context, toolId: Int): Drawable? {
+            val iconResource = if (toolId == 1) {
+                net.mikemobile.mikelauncher.R.drawable.icon_drawer_menu
+            } else if (toolId == 2) {
+                net.mikemobile.mikelauncher.R.drawable.folder
+            } else {
+                return null
+            }
+
+            return ResourcesCompat.getDrawable(
+                context.resources,
+                iconResource,
+                null)
+        }
+
+
         /**
          * アプリ起動
          */
@@ -179,7 +197,6 @@ class Global {
 
             launch(context, info, view)
         }
-
         fun launch(context: Context, info: AppInfo, view: View? = null) {
 
             try {
@@ -198,21 +215,6 @@ class Global {
             }
         }
 
-        fun getToolIcon(context: Context, toolId: Int): Drawable? {
-            val iconResource = if (toolId == 1) {
-                net.mikemobile.mikelauncher.R.drawable.icon_drawer_menu
-            } else if (toolId == 2) {
-                net.mikemobile.mikelauncher.R.drawable.folder
-            } else {
-                return null
-            }
-
-            return ResourcesCompat.getDrawable(
-                context.resources,
-                iconResource,
-                null)
-        }
-
         fun generateId(): Int {
             val uuid = UUID.randomUUID()
             return uuid.hashCode() // ハッシュコードをIDとして使用
@@ -227,6 +229,95 @@ class Global {
             }
 
             return false
+        }
+
+        fun notificationDataReset() {
+            notificationCountList.clear()
+        }
+
+        fun removeNotification(packageName: String) {
+            var data = if (notificationCountList.containsKey(packageName)) {
+                notificationCountList[packageName]
+            } else {
+                NotificationCountData(0)
+            }
+
+            if (data == null) {
+                data = NotificationCountData(0)
+            }
+
+            data.count -= 1
+
+            if (data.count < 0) data.count
+            notificationCountList[packageName] = data
+        }
+
+        fun addNotification(packageName: String) {
+
+            var data = if (notificationCountList.containsKey(packageName)) {
+                notificationCountList[packageName]
+            } else {
+                NotificationCountData(0)
+            }
+
+            if (data == null) {
+                data = NotificationCountData(0)
+            }
+
+            data.count += 1
+
+            notificationCountList[packageName] = data
+        }
+
+        fun getAppList(cellPointName: CELL_POINT_NAME, packageName: String): ArrayList<HomeItem> {
+
+            if (cellPointName == CELL_POINT_NAME.DESKTOP) {
+                return homeItemData.getAppList(packageName)
+            } else if (cellPointName == CELL_POINT_NAME.DOCK) {
+                return dockItemData.getAppList(packageName)
+            }
+
+            return ArrayList<HomeItem>()
+        }
+
+        fun getAppList(cellPointName: CELL_POINT_NAME): ArrayList<HomeItem> {
+
+            if (cellPointName == CELL_POINT_NAME.DESKTOP) {
+                return homeItemData.getAppList()
+            } else if (cellPointName == CELL_POINT_NAME.DOCK) {
+                return dockItemData.getAppList()
+            }
+
+            return ArrayList<HomeItem>()
+        }
+
+        fun getFolderInHomeItemList(folderId: Int): ArrayList<HomeItem> {
+            return folderManager.getList(folderId)
+        }
+
+        fun getNotificationCount(packageName: String): Int {
+            val count = if (notificationCountList.containsKey(packageName)) {
+                if (notificationCountList[packageName] != null) {
+                    notificationCountList[packageName]!!.count
+                } else {
+                    0
+                }
+            } else {
+                0
+            }
+
+            return count
+        }
+
+        fun getNotificationCountToFolder(folderId: Int): Int {
+            val folderInItemList = Global.getFolderInHomeItemList(folderId)
+
+            var inItemCount = 0
+            for(folderInItem in folderInItemList) {
+                val count = getNotificationCount(folderInItem.packageName)
+                inItemCount = inItemCount + count
+            }
+            return inItemCount
         }
     }
 }

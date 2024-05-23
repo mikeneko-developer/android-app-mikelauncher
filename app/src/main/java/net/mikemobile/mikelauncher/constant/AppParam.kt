@@ -14,8 +14,16 @@ enum class CELL_POINT_NAME(val value: Int) {
     NONE(0),
     DESKTOP(1),
     DOT(2),
-    DOCK(3)
+    DOCK(3),
+
+    FOLDER(4),
 }
+
+enum class ToolType(val value: Int) {
+    DRAWER(1),
+    FOLDER(2),
+}
+
 
 enum class ITEM_MOVE {
     MOVING_ITEM_ENABLED, // 他に移動するアイテムあり
@@ -35,3 +43,5 @@ data class WidgetData(
     var height: Int,
     val label: String,
 )
+
+data class NotificationCountData(var count: Int)

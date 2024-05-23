@@ -14,6 +14,7 @@ import android.view.View
 import androidx.constraintlayout.widget.ConstraintLayout
 import net.mikemobile.mikelauncher.constant.CELL_POINT_NAME
 import net.mikemobile.mikelauncher.constant.DimenPoint
+import net.mikemobile.mikelauncher.constant.Global
 import net.mikemobile.mikelauncher.constant.GridSize
 import net.mikemobile.mikelauncher.constant.GridPoint
 import net.mikemobile.mikelauncher.constant.ViewSize
@@ -59,7 +60,7 @@ class DragAndDropView: ConstraintLayout {
     //
     var column: Int = -1
     var row: Int = -1
-    var dotHeight = -1
+    private var dotHeight = -1
     var calcEnable = false
     var oneCellSize = ViewSize(-1f,-1f)
 
@@ -99,22 +100,13 @@ class DragAndDropView: ConstraintLayout {
         this.column = column
     }
 
-    fun setDotHeight(dotHeight: Int): Boolean {
+    fun setDotHeight(dotHeight: Int) {
         this.dotHeight = dotHeight
-
-        return checkData()
     }
 
-    private fun checkData(): Boolean {
-        if (dotHeight == -1) return false
-
-        val oneWidth = measuredWidth.toFloat() / column
-        val oneHeight = (measuredHeight - dotHeight.toFloat()) / (row + 1)
-
-        oneCellSize = ViewSize(oneWidth, oneHeight)
-
+    fun setGridSize(oneCellSize: ViewSize) {
+        this.oneCellSize = oneCellSize
         calcEnable = true
-        return true
     }
 
 
@@ -218,20 +210,31 @@ class DragAndDropView: ConstraintLayout {
                 canvas.drawCircle(positionX, positionY, 130f, touchPaint)
             }
 
-            /**
-             * 対象物の起点となるポイント
-             */
-//            touchPoint?.let { move ->
+//            if (oneCellSize.width != -1f && oneCellSize.height != -1f) {
+//                for (rowId in 0 until row) {
+//                    canvas.drawLine(
+//                        0f,
+//                        oneCellSize.height * rowId,
+//                        oneCellSize.width * column,
+//                        oneCellSize.height * rowId,
+//                        paint
+//                    )
+//                }
 //
-//                val positionX = move.x
-//                val positionY = move.y
-//
-//                //
-//                canvas.drawCircle(positionX, positionY, 20f, iconStartingPaint)
+//                for (columnId in 0 until column) {
+//                    canvas.drawLine(
+//                        oneCellSize.width * columnId,
+//                        0f,
+//                        oneCellSize.width * columnId,
+//                        oneCellSize.height * row,
+//                        paint
+//                    )
+//                }
 //            }
-
-
         }
+
+        if (!calcEnable) return
+
 
         if (onTouchEventDisable) {
             android.util.Log.i(TAG, "タッチ無効")
@@ -625,6 +628,7 @@ class DragAndDropView: ConstraintLayout {
         val image = data?: return
         val move = movePosition?: return
         val startPoint = imageStartPoint?: return
+        val tPoint = touchPoint?: return
 
 
         val scale = floatScale
@@ -633,7 +637,14 @@ class DragAndDropView: ConstraintLayout {
         val scaleChangeHeight = ((image.height * scale) - image.height) / 2
 
         val positionX = -scaleChangeWidth + startPoint.x + move.x
-        val positionY = -scaleChangeHeight + startPoint.y + move.y
+        var positionY = -scaleChangeHeight + startPoint.y + move.y
+
+
+        val dotToBottomBorder = Global.ROW_COUNT * oneCellSize.height + dotHeight
+        if (dotToBottomBorder <= tPoint.y) {
+            positionY += dotHeight
+        }
+
 
         val matrix = Matrix()
         matrix.setScale(scale, scale)
@@ -651,6 +662,7 @@ class DragAndDropView: ConstraintLayout {
     private fun drawShadowGridPoint(canvas: Canvas) {
         android.util.Log.i(TAG, "drawShadowGridPoint　画像の判定")
         val image = data?: return
+        val tPoint = touchPoint?: return
 
         android.util.Log.i(TAG, "drawShadowGridPoint　影画像の判定")
         val shadowImage = outlineImage?: return
@@ -670,6 +682,13 @@ class DragAndDropView: ConstraintLayout {
         val cellPositionX = column * oneCellSize.width
         var cellPositionY = row * oneCellSize.height
 
+
+        val dotToBottomBorder = Global.ROW_COUNT * oneCellSize.height + dotHeight
+        if (dotToBottomBorder <= tPoint.y) {
+            cellPositionY += dotHeight
+        } else if (Global.ROW_COUNT * oneCellSize.height <= tPoint.y) {
+            return
+        }
 
         val matrix = Matrix()
         matrix.postTranslate(cellPositionX, cellPositionY)

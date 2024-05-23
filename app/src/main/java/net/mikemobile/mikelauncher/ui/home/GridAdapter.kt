@@ -98,6 +98,12 @@ class GridAdapter(
         }
     }
 
+    fun updateGrid(view: View, gridCount: GridCount, item: HomeItem) {
+        getPositionLayoutGridController(item.page)?.let {page ->
+            page.updateGrid(view, gridCount, item.row, item.column)
+        }
+    }
+
     fun removePageItem(position: Int, row: Int, column: Int) {
         getPositionLayoutGridController(page)?.let {page ->
             page.clearGrid(row, column)

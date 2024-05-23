@@ -4,7 +4,10 @@ import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetHostView
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
@@ -22,6 +25,10 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.viewpager2.widget.ViewPager2
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.mikemobile.mikelauncher.MainActivity
 import net.mikemobile.mikelauncher.R
 import net.mikemobile.mikelauncher.constant.CELL_POINT_NAME
@@ -33,9 +40,13 @@ import net.mikemobile.mikelauncher.constant.GridCount
 import net.mikemobile.mikelauncher.constant.GridPoint
 import net.mikemobile.mikelauncher.constant.HomeItemType
 import net.mikemobile.mikelauncher.constant.ITEM_MOVE
+import net.mikemobile.mikelauncher.constant.NotificationCountData
+import net.mikemobile.mikelauncher.constant.ToolType
+import net.mikemobile.mikelauncher.constant.ViewSize
 import net.mikemobile.mikelauncher.constant.WidgetData
 import net.mikemobile.mikelauncher.data.AppPreference
 import net.mikemobile.mikelauncher.data.HomeItem
+import net.mikemobile.mikelauncher.system.MyNotificationListenerService
 import net.mikemobile.mikelauncher.system.triggerVibration
 import net.mikemobile.mikelauncher.ui.custom.DragAndDropView
 import net.mikemobile.mikelauncher.ui.custom.OverlayMenuView
@@ -95,6 +106,7 @@ class HomeFragment : Fragment(),
         viewModel = ViewModelProvider(this).get(HomeViewModel::class.java)
 
         setupWidget()
+        notificationSetup()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -109,6 +121,11 @@ class HomeFragment : Fragment(),
         if (!firstLoad) {}
 
         firstLoad = false
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        notificationClear()
     }
 
 
@@ -521,7 +538,6 @@ class HomeFragment : Fragment(),
             null
         }
 
-
         item?.let {
             Log.i(TAG + "-WIDGET_FIELD","setDragAndDropData >> homeItem　data " +
                     "label:" + item.label + " / type:" + item.type + "\n" +
@@ -529,9 +545,6 @@ class HomeFragment : Fragment(),
                     "")
 
             if (item.widgetField) {
-
-
-
                 if (Global.homeItemData.checkNotWidgetData(item.fieldId)) {
                     // オリジナルのデータがない
 
@@ -554,7 +567,9 @@ class HomeFragment : Fragment(),
                     // データを追加する
                     val list = Global.folderManager.getList(it.folderId)
 
-                    val folderView = createToolFolderView(requireContext(), it, list)
+                    var inItemCount = Global.getNotificationCountToFolder(it.folderId)
+
+                    val folderView = createToolFolderView(requireContext(), it, list, inItemCount)
 
                     val parent = folderView.parent as ViewGroup
                     parent?.removeView(folderView)
@@ -563,7 +578,8 @@ class HomeFragment : Fragment(),
                     layout.layoutParams.width = (Global.gridSize.width).toInt()
                     layout.layoutParams.height = (Global.gridSize.height).toInt()
                 } else {
-                    val view = createItemView(requireContext(), it)
+                    val count = Global.getNotificationCount(it.packageName)
+                    val view = createItemView(requireContext(), it, count)
                     layout.addView(view)
                     layout.layoutParams.width = (Global.gridSize.width).toInt()
                     layout.layoutParams.height = (Global.gridSize.height).toInt()
@@ -620,7 +636,8 @@ class HomeFragment : Fragment(),
 
 
             } else{
-                val view = createItemView(requireContext(), it)
+                val count = Global.getNotificationCount(it.packageName)
+                val view = createItemView(requireContext(), it, count)
                 layout.addView(view)
                 layout.layoutParams.width = (Global.gridSize.width).toInt()
                 layout.layoutParams.height = (Global.gridSize.height).toInt()
@@ -725,16 +742,29 @@ class HomeFragment : Fragment(),
             dragDrop.differenceTouch(DimenPoint(0f, 0f))
         }
 
-
         android.util.Log.i(TAG + TAG_DRAG,"画像を登録します")
         dragDrop.setDragImage(bitmap, DimenPoint(positionX, positionY))
 
+
+        val dotHeight = (20).dpToPx(requireContext()).toInt()
+        val desktopHeight = Global.ROW_COUNT * Global.gridSize.height + dotHeight
+
+
         if (homeItem.widgetField) {
             itemData.getItem(homeItem.fieldId)?.let {
-                dragDrop.setImageStartPoint(Global.calcStartDimenPoint(it))
+                var startPoint = Global.calcStartDimenPoint(it)
+                if (cellPointName == CELL_POINT_NAME.DOCK) {
+                    startPoint.y += desktopHeight
+                }
+
+                dragDrop.setImageStartPoint(startPoint)
             }
         } else {
-            dragDrop.setImageStartPoint(Global.calcStartDimenPoint(homeItem))
+            var startPoint = Global.calcStartDimenPoint(homeItem)
+            if (cellPointName == CELL_POINT_NAME.DOCK) {
+                startPoint.y += desktopHeight
+            }
+            dragDrop.setImageStartPoint(startPoint)
         }
 
         // フロートメニューを表示する
@@ -774,23 +804,11 @@ class HomeFragment : Fragment(),
         // Gridの移動
 
         val gridCount = Global.calcSizeToGridCount(item.width, item.height)
-        android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> gridCount.rowCount:" + gridCount.rowCount)
-        android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> gridCount.columnCount:" + gridCount.columnCount)
-
         if (startCellPointName == cellPointName) {
             android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> 同じスペース :" + cellPointName)
 
-            android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> x:" + point.x)
-            android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> y:" + point.y)
             val newPoint = Global.calcDimenToGridPoint(point)
             val prevPoint = GridPoint(item.row, item.column)
-
-
-            android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> gridPage :" + gridPage)
-            android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> row :" + newPoint.row)
-            android.util.Log.i(TAG + TAG_DRAG,"endDragAndDrop >> column :" + newPoint.column)
-
-
             if (cellPointName == CELL_POINT_NAME.DESKTOP) {
                 // 移動元のデータを削除する
 
@@ -834,7 +852,6 @@ class HomeFragment : Fragment(),
                 android.util.Log.i(TAG,"endDragAndDrop >> setGrid-2")
                 // 移動元のデータを削除する
                 Global.dockItemData.removeHomeItem(0, prevPoint.row, prevPoint.column)
-
 
                 setGrid(item,
                     view,
@@ -963,6 +980,8 @@ class HomeFragment : Fragment(),
      * Viewサイズを取得したら呼ばれるOverrideメソッド
      */
     override fun onDisplayEnable(width: Int, height: Int) {
+        android.util.Log.i(TAG + "_DisplayEnabled","onDisplayEnable >> width:" + width)
+        android.util.Log.i(TAG + "_DisplayEnabled","onDisplayEnable >> height:" + height)
 
         val dotHeight = (20).dpToPx(requireContext()).toInt()
 
@@ -975,14 +994,15 @@ class HomeFragment : Fragment(),
         desktopAdapter.setCellSize(GridSize(oneWidth.toFloat(), oneHeight.toFloat()))
         dockAdapter.setCellSize(GridSize(oneWidth.toFloat(), oneHeight.toFloat()))
 
-        android.util.Log.i(TAG,"onDisplayEnable >> dotHeight:" + dotHeight)
-        android.util.Log.i(TAG,"onDisplayEnable >> oneWidth:" + oneWidth)
-        android.util.Log.i(TAG,"onDisplayEnable >> oneHeight:" + oneHeight)
+        android.util.Log.i(TAG + "_DisplayEnabled","onDisplayEnable >> dotHeight:" + dotHeight)
+        android.util.Log.i(TAG + "_DisplayEnabled","onDisplayEnable >> oneWidth:" + oneWidth)
+        android.util.Log.i(TAG + "_DisplayEnabled","onDisplayEnable >> oneHeight:" + oneHeight)
 
         dotFrame?.layoutParams?.height = dotHeight
         dockViewPager?.layoutParams?.height = oneHeight
 
         dragAndDropView?.setDotHeight(dotHeight)
+        dragAndDropView?.setGridSize(ViewSize(Global.gridSize.width, Global.gridSize.height))
 
     }
 
@@ -1029,6 +1049,9 @@ class HomeFragment : Fragment(),
      */
     override fun onTouchClick(cellPointName: CELL_POINT_NAME, point: DimenPoint) {
         if (dragAndDropFlag) return
+
+
+        triggerVibration(requireContext())
 
         val viewSize = viewPager!!.getSize()
         val oneWidth = viewSize.width / Global.COLUMN_COUNT
@@ -1220,7 +1243,8 @@ class HomeFragment : Fragment(),
      */
     private fun addGrid(item: HomeItem) {
         // 配置するViewの生成
-        val view = createItemView(requireContext(), item)
+        val count = Global.getNotificationCount(item.packageName)
+        val view = createItemView(requireContext(), item, count)
         val gridCount = Global.calcSizeToGridCount(item.width, item.height)
 
         // gridに配置する
@@ -1258,9 +1282,7 @@ class HomeFragment : Fragment(),
                 + "\n toolId:" + item.toolId
                 + "\n firldId:" + item.fieldId
         )
-
-
-
+        
         // 配置位置がGrid外に出ていないかチェック
         if (row + item.fieldRow >= Global.ROW_COUNT) {
             row = Global.ROW_COUNT - item.fieldRow
@@ -1365,7 +1387,6 @@ class HomeFragment : Fragment(),
         }
         dragAndDropView?.setEnableTouchEvent()
     }
-
     private fun closeOverLayView2() {
         hideKeyboard(requireContext())
         overlayMenuView2?.let {
@@ -1507,7 +1528,8 @@ class HomeFragment : Fragment(),
         Global.homeItemData.addItem(gridPage, homeItem)
         pref.setAppsList()
 
-        val child = createItemView(requireContext(), homeItem)
+        val count = Global.getNotificationCount(homeItem.packageName)
+        val child = createItemView(requireContext(), homeItem, count)
         val gridCount = Global.calcSizeToGridCount(homeItem.width, homeItem.height)
 
         desktopAdapter.addGrid(child, gridCount, homeItem)
@@ -1535,6 +1557,8 @@ class HomeFragment : Fragment(),
 
     private fun updateFolderApp(folder: HomeItem) {
         val list = Global.folderManager.getList(folder.folderId)
+
+        var inItemCount = Global.getNotificationCountToFolder(folder.folderId)
         val folderView = createToolFolderView(requireContext(), folder, list)
 
         val gridCount = Global.calcSizeToGridCount(folder.width, folder.height)
@@ -1689,5 +1713,179 @@ class HomeFragment : Fragment(),
         intent.action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
         intent.putExtra(Settings.EXTRA_APP_PACKAGE, item.packageName)
         startActivity(intent)
+    }
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+    private var notificationReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+
+            var notificationType = "none"
+            intent?.let {
+                notificationType = it.getStringExtra("notificationType").toString()
+
+                if (notificationType == "none") return
+
+                if (notificationType == "ALL") {
+                    updateAllNotification(it)
+                } else if (notificationType == "one") {
+                    updateOneNotification(it)
+                }
+            }
+
+
+        }
+    }
+    private fun notificationSetup() {
+        this.requireContext().registerReceiver(notificationReceiver, IntentFilter("com.example.notificationlistener.ACTIVE_NOTIFICATIONS"))
+    }
+    private fun notificationClear() {
+        this.requireContext().unregisterReceiver(notificationReceiver)
+    }
+
+    private fun updateOneNotification(intent: Intent) {
+        val notification_flg = intent.getBooleanExtra("notification_flg", false)
+
+        if (notification_flg) {
+            val notification = intent.getParcelableExtra<MyNotificationListenerService.NotificationData>("notification")
+            val packageName = notification?.packageName
+
+            packageName?.let {
+                Global.addNotification(packageName)
+                updateNotification(packageName)
+            }
+
+        } else {
+            val notification = intent.getParcelableExtra<MyNotificationListenerService.NotificationData>("notification")
+            val packageName = notification?.packageName
+
+            packageName?.let {
+                Global.removeNotification(packageName)
+                updateNotification(packageName)
+            }
+
+        }
+    }
+
+    private fun updateNotification(packageName: String) {
+
+        val appList1 = Global.getAppList(CELL_POINT_NAME.DESKTOP, packageName)
+        for(homeItem in appList1) {
+            if (homeItem.isFolder()) {
+                var inItemCount = Global.getNotificationCountToFolder(homeItem.folderId)
+                updateGrid(CELL_POINT_NAME.DESKTOP, homeItem, inItemCount)
+            } else {
+                val count = Global.getNotificationCount(homeItem.packageName)
+                updateGrid(CELL_POINT_NAME.DESKTOP, homeItem, count)
+            }
+        }
+
+        val appList2 = Global.getAppList(CELL_POINT_NAME.DOCK, packageName)
+        for(homeItem in appList2) {
+
+            if (homeItem.isFolder()) {
+                var inItemCount = Global.getNotificationCountToFolder(homeItem.folderId)
+                updateGrid(CELL_POINT_NAME.DOCK, homeItem, inItemCount)
+            } else {
+                val count = Global.getNotificationCount(homeItem.packageName)
+                updateGrid(CELL_POINT_NAME.DOCK, homeItem, count)
+            }
+        }
+    }
+
+    private fun updateAllNotification(intent: Intent) {
+
+        //Log.i("NotificationListener", "onReceive")
+        Global.notificationDataReset()
+
+        val notifications = intent.getParcelableArrayListExtra<MyNotificationListenerService.NotificationData>("notifications")
+        val notificationText = notifications?.joinToString(separator = "\n") {
+            "PackageName: ${it.packageName} / ${it.category} / ${it.title} / Text: ${it.text}"
+        }
+
+        Log.i("NotificationListener", "notification  /  notificationText:${notificationText}")
+
+        if (notifications != null) {
+            for(item in notifications) {
+                val packageName = item.packageName
+
+                packageName?.let {
+                    Global.addNotification(packageName)
+                }
+            }
+        }
+        updateNotificationToPage()
+
+    }
+
+
+    private fun updateNotificationToPage() {
+        val list = Global.notificationCountList
+
+        val appList1 = Global.getAppList(CELL_POINT_NAME.DESKTOP)
+        for(homeItem in appList1) {
+            if (homeItem.isFolder()) {
+                var inItemCount = Global.getNotificationCountToFolder(homeItem.folderId)
+                updateGrid(CELL_POINT_NAME.DESKTOP, homeItem, inItemCount)
+            } else {
+                val count = Global.getNotificationCount(homeItem.packageName)
+                updateGrid(CELL_POINT_NAME.DESKTOP, homeItem, count)
+            }
+        }
+
+        val appList2 = Global.getAppList(CELL_POINT_NAME.DOCK)
+        for(homeItem in appList2) {
+
+            if (homeItem.isFolder()) {
+                var inItemCount = Global.getNotificationCountToFolder(homeItem.folderId)
+                updateGrid(CELL_POINT_NAME.DOCK, homeItem, inItemCount)
+            } else {
+                val count = Global.getNotificationCount(homeItem.packageName)
+                updateGrid(CELL_POINT_NAME.DOCK, homeItem, count)
+            }
+        }
+
+//        for(packageName in list.keys) {
+//            var data = if (Global.notificationCountList.containsKey(packageName)) {
+//                Global.notificationCountList[packageName]
+//            } else {
+//                null
+//            }
+//
+//            if (data != null) {
+//                var count = data.count
+//                // パッケージ名から配置されている箇所をリストアップする
+//
+//            }
+//        }
+    }
+
+    private fun updateGrid(cellPointName: CELL_POINT_NAME, homeItem: HomeItem, count: Int) {
+        if (homeItem.toolId == ToolType.FOLDER.value) {
+            // データを追加する
+            val list = Global.folderManager.getList(homeItem.folderId)
+
+            val folderView = createToolFolderView(requireContext(), homeItem, list, count)
+            val gridCount = Global.calcSizeToGridCount(homeItem.width, homeItem.height)
+
+            if (cellPointName == CELL_POINT_NAME.DESKTOP) {
+                desktopAdapter.updateGrid(folderView, gridCount, homeItem)
+            } else if (cellPointName == CELL_POINT_NAME.DOCK) {
+                dockAdapter.updateGrid(folderView, gridCount, homeItem)
+            }
+
+        } else {
+            val child = createItemView(requireContext(), homeItem, count)
+            val gridCount = Global.calcSizeToGridCount(homeItem.width, homeItem.height)
+
+            if (cellPointName == CELL_POINT_NAME.DESKTOP) {
+                desktopAdapter.updateGrid(child, gridCount, homeItem)
+            } else if (cellPointName == CELL_POINT_NAME.DOCK) {
+                dockAdapter.updateGrid(child, gridCount, homeItem)
+            }
+        }
     }
 }

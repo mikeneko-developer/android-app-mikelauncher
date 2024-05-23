@@ -31,7 +31,7 @@ import net.mikemobile.mikelauncher.data.HomeItem
 
 
 @SuppressLint("InflateParams")
-fun createItemView(context: Context, item: HomeItem): View {
+fun createItemView(context: Context, item: HomeItem, count: Int = 0): View {
     val layoutParams = LinearLayout.LayoutParams(
         MATCH_PARENT,
         MATCH_PARENT
@@ -45,6 +45,15 @@ fun createItemView(context: Context, item: HomeItem): View {
 
     val textView = itemView.findViewById<TextView>(R.id.textView)
     textView.text = item.label
+
+    val noti_count = itemView.findViewById<TextView>(R.id.noti_count)
+    if (count == 0) {
+        noti_count.text = ""
+        noti_count.visibility = View.GONE
+    } else {
+        noti_count.text = "" + count
+        noti_count.visibility = View.VISIBLE
+    }
 
     val innerLayout = getInnerLayout(context)
     innerLayout.addView(itemView)
@@ -70,7 +79,7 @@ fun createToolItemView(context: Context, item: HomeItem): View {
 
 
 @SuppressLint("MissingInflatedId")
-fun createToolFolderView(context: Context, item: HomeItem, list: ArrayList<HomeItem>): View {
+fun createToolFolderView(context: Context, item: HomeItem, list: ArrayList<HomeItem>, count: Int = 0): View {
     val layoutParams = LinearLayout.LayoutParams(
         MATCH_PARENT,
         MATCH_PARENT
@@ -115,6 +124,15 @@ fun createToolFolderView(context: Context, item: HomeItem, list: ArrayList<HomeI
         imageView4.setImageDrawable(list[3].icon)
     } else {
         imageView4.setImageDrawable(null)
+    }
+
+    val noti_count = itemView.findViewById<TextView>(R.id.noti_count)
+    if (count == 0) {
+        noti_count.text = ""
+        noti_count.visibility = View.GONE
+    } else {
+        noti_count.text = "" + count
+        noti_count.visibility = View.VISIBLE
     }
 
     val innerLayout = getInnerLayout(context)

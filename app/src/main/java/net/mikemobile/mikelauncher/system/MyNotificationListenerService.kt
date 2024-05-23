@@ -33,47 +33,74 @@ class MyNotificationListenerService: NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
-        Log.d("NotificationListener", "onNotificationPosted")
-//        sbn?.let {
-//            // 通知の詳細を取得
-//            val packageName = it.packageName
-//            val extras = it.notification.extras
-//            val title = extras.getString("android.title")
-//            val text = extras.getCharSequence("android.text").toString()
-//
-//            //Log.d("NotificationListener", "Package: $packageName, Title: $title, Text: $text")
-//
-//            // 通知の内容を処理する
-//            handleNotification(packageName, title, text)
-//
-//        }
+        Log.d("NotificationListener_onNotificationPosted", "onNotificationPosted")
+        sbn?.let {
+            // 通知の詳細を取得
+            val packageName = it.packageName
+            val extras = it.notification.extras
+            val category = sbn.notification.category
+            val title = if (extras.containsKey("android.title")) {
+                extras.get("android.title") as? String ?: ""
+            } else {
+                ""
+            }
+            val text = extras.getCharSequence("android.text").toString()
+
+            Log.d("NotificationListener_onNotificationPosted", "Package: $packageName, Title: $title, Text: $text")
+
+            // 通知の内容を処理する
+            val data = NotificationData(packageName, category, title, text)
+
+            val intent = Intent("com.example.notificationlistener.ACTIVE_NOTIFICATIONS")
+            intent.putExtra("notificationType", "one")
+            intent.putExtra("notification", data)
+            intent.putExtra("notification_flg", true)
+            //sendBroadcast(intent)
+
+        }
         activeNotificationList()
 
     }
-
-
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
-        Log.d("NotificationListener", "onNotificationRemoved")
+        Log.d("NotificationListener_onNotificationPosted", "onNotificationRemoved")
         // 通知が削除されたときの処理をここに書きます（オプション）
+
+        var count = 1
+        sbn?.let {
+            // 通知の詳細を取得
+            val packageName = it.packageName
+            val extras = it.notification.extras
+            val category = sbn.notification.category
+            val title = if (extras.containsKey("android.title")) {
+                extras.get("android.title") as? String ?: ""
+            } else {
+                ""
+            }
+            val text = extras.getCharSequence("android.text").toString()
+
+            Log.d("NotificationListener_onNotificationPosted", "count: $count, Package: $packageName, Title: $title, Text: $text")
+            count++
+            // 通知の内容を処理する
+            val data = NotificationData(packageName, category, title, text)
+
+            val intent = Intent("com.example.notificationlistener.ACTIVE_NOTIFICATIONS")
+            intent.putExtra("notificationType", "one")
+            intent.putExtra("notification", data)
+            intent.putExtra("notification_flg", false)
+            //sendBroadcast(intent)
+
+        }
         activeNotificationList()
-    }
-
-    private fun handleNotification(packageName: String, title: String?, text: String?) {
-        // 通知の内容を処理するコードをここに書きます
-        val intent = Intent("com.example.notificationlistener.NOTIFICATION_LISTENER")
-        intent.putExtra("packageName", packageName)
-        intent.putExtra("title", title)
-        intent.putExtra("text", text)
-        //sendBroadcast(intent)
-
     }
 
     private fun activeNotificationList() {
         Log.d("NotificationListener", "activeNotificationList")
 
         try {
-            val activeNotifications = getActiveNotifications()
+
+
+            val activeNotifications = this.activeNotifications
             val notificationsList = activeNotifications.map { sbn ->
 
                 val extras = sbn.notification.extras
@@ -89,12 +116,32 @@ class MyNotificationListenerService: NotificationListenerService() {
             }
 
             val intent = Intent("com.example.notificationlistener.ACTIVE_NOTIFICATIONS")
+            intent.putExtra("notificationType", "ALL")
             intent.putParcelableArrayListExtra("notifications", ArrayList(notificationsList))
             sendBroadcast(intent)
         }catch(e: Exception) {
             Log.e("NotificationListener", "error:" + e.toString())
         }
     }
+
+    /**
+     * 通知に関して注意点
+     * 「onNotificationPosted」でIntentで取得したデータは「activeNotificationList」には入らないので注意が必要
+     * ※単純にリストに追加するでいいのかも？
+     *
+     * データはIntentで渡すとタイミングによってはズレそうなので、データの保存はPreferenceに実行して、Intentでは読み込み処理を実施する方がいいかも？
+     *
+     * 確認できていないから断言はできないけど「onNotificationRemoved」も同じ理屈が通りそう
+     * 逆に「activeNotificationList」でも取れてしまうから、「activeNotificationList」から取得した内容から消さないといけないかも。
+     *
+     *
+     */
+
+
+
+
+
+
 
     data class NotificationData(
         val packageName: String?,

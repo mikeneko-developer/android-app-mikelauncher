@@ -696,6 +696,70 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         return getWidgetFieldAddList(item, row, column)
     }
 
+    fun getAppList(): ArrayList<HomeItem> {
+        val pageCountMax = if (cellPointName == CELL_POINT_NAME.DOCK) {
+            1
+        } else {
+            5
+        }
+
+        val appList = ArrayList<HomeItem>()
+
+        for(page in 0 until pageCountMax) {
+
+            val key = "" + page
+
+            val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+                HashMap<String, HomeItem>()
+            } else {
+                itemList[key]!!
+            }
+
+            for (key in list.keys) {
+                val item = list[key]
+
+                if (
+                    item != null && item.type == HomeItemType.APP.value
+                    || item != null && item.type == HomeItemType.TOOL.value && item.toolId == ToolType.FOLDER.value
+                ) {
+                    appList.add(item)
+                }
+            }
+        }
+
+        return appList
+    }
+
+    fun getAppList(packageName: String): ArrayList<HomeItem> {
+        val pageCountMax = if (cellPointName == CELL_POINT_NAME.DOCK) {
+            1
+        } else {
+            5
+        }
+
+        val appList = ArrayList<HomeItem>()
+
+        for(page in 0 until pageCountMax) {
+
+            val key = "" + page
+
+            val list = if (itemList.size == 0 || !itemList.containsKey(key)) {
+                HashMap<String, HomeItem>()
+            } else {
+                itemList[key]!!
+            }
+
+            for (key in list.keys) {
+                val item = list[key]
+                if (item!!.packageName == packageName) {
+                    appList.add(item!!)
+                }
+            }
+        }
+
+        return appList
+    }
+
 
     fun getWidgetFieldAddList(item: HomeItem, row: Int, column: Int): ArrayList<HomeItem> {
         val homeItemList = ArrayList<HomeItem>()
