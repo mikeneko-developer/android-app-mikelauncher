@@ -18,7 +18,8 @@ import net.mikemobile.mikelauncher.constant.Global
 class AppAdapter(
     private val context: Context,
     private val inflater: LayoutInflater,
-    private val onClick: (view: View, info: AppInfo) -> Unit
+    private val onClick: (view: View, info: AppInfo) -> Unit,
+    private val onLongClick: (view: View, info: AppInfo) -> Unit
 ) : RecyclerView.Adapter<AppAdapter.AppViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppViewHolder =
         AppViewHolder(inflater.inflate(R.layout.list_item_application, parent, false))
@@ -28,6 +29,11 @@ class AppAdapter(
     override fun onBindViewHolder(holder: AppViewHolder, position: Int) {
         val info = list[position]
         holder.itemView.setOnClickListener { onClick(holder.icon, info) } // <- ココ
+        holder.itemView.setOnLongClickListener {
+            onLongClick(holder.icon, info)
+
+            return@setOnLongClickListener true
+        } // <- ココ
 
 
         downLoadImage(info, holder.icon)

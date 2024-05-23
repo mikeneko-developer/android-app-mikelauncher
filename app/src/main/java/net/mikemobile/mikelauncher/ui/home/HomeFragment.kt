@@ -490,6 +490,7 @@ class HomeFragment : Fragment(),
                 pref.setAppsList()
                 desktopAdapter.addGrid(widgetData.view, gridCount, addItem)
 
+
                 if (addItem.type == HomeItemType.WIDGET.value) {
                     Global.homeItemData.addWidgetFieldToItem(addItem)
                     val list = Global.homeItemData.getWidgetFieldList(addItem)
@@ -682,10 +683,20 @@ class HomeFragment : Fragment(),
      */
     private fun setDragAndDropData(adapter: GridAdapter, cellPointName: CELL_POINT_NAME, homeItem: HomeItem, point: DimenPoint) {
 
+        val itemData = if (cellPointName == CELL_POINT_NAME.DESKTOP) {
+            Global.homeItemData
+        } else if (cellPointName == CELL_POINT_NAME.DOCK) {
+            Global.dockItemData
+        } else {
+            null
+        }
+
+        if (itemData == null) return
+
         android.util.Log.i(TAG + TAG_DRAG,"setDragAndDropData")
         android.util.Log.i(TAG + TAG_DRAG,"setDragAndDropDat >> GridPoint取得")
         val cellPoint = if (homeItem.widgetField) {
-            var originalItem = Global.homeItemData.getItem(homeItem.fieldId)
+            var originalItem = itemData.getItem(homeItem.fieldId)
 
             if (originalItem != null) {
                 GridPoint(originalItem.row, originalItem.column)
@@ -744,7 +755,7 @@ class HomeFragment : Fragment(),
         dragDrop.setDragImage(bitmap, DimenPoint(positionX, positionY))
 
         if (homeItem.widgetField) {
-            Global.homeItemData.getItem(homeItem.fieldId)?.let {
+            itemData.getItem(homeItem.fieldId)?.let {
                 dragDrop.setImageStartPoint(Global.calcStartDimenPoint(it))
             }
         } else {
@@ -752,7 +763,17 @@ class HomeFragment : Fragment(),
         }
 
         // フロートメニューを表示する
-        openIconMenu(cellPointName, homeItem, point.x, point.y)
+        if (homeItem.widgetField) {
+            var originalItem = itemData.getItem(homeItem.fieldId)
+
+            if (originalItem != null) {
+                openIconMenu(cellPointName, originalItem, point.x, point.y)
+            }
+
+        } else {
+            openIconMenu(cellPointName, homeItem, point.x, point.y)
+        }
+
     }
 
     /**
@@ -1060,11 +1081,15 @@ class HomeFragment : Fragment(),
         var point = _point
 
         if (cellPointName == CELL_POINT_NAME.DESKTOP) {
+            android.util.Log.i(TAG + TAG_DRAG,"position x:" + point.x + " / y:" + point.y)
+
             val gridPoint = Global.calcDimenToGridPoint(point)
+
+            android.util.Log.i(TAG + TAG_DRAG,"grid column:" + gridPoint.column + " / row:" + gridPoint.row)
 
             var homeItem = Global.homeItemData.getItem(gridPage, gridPoint.row, gridPoint.column)
 
-            android.util.Log.i(TAG + TAG_DRAG,"widgetField x:" + homeItem?.widgetField)
+            android.util.Log.i(TAG + TAG_DRAG,"widgetField :" + homeItem?.widgetField)
 
             if (homeItem != null && homeItem.widgetField) {
                 android.util.Log.i(TAG + TAG_DRAG,"position x:" + point.x + " / y" + point.y)
@@ -1077,9 +1102,6 @@ class HomeFragment : Fragment(),
                     // オリジナルのデータがない
                     Global.homeItemData.removeHomeItem(gridPage, homeItem.row, homeItem.column)
                     homeItem =  null
-                } else if (originalItem != null){
-                    //point = newPoint
-
                 }
 
             }

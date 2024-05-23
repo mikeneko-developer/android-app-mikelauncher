@@ -186,6 +186,11 @@ class Global {
                 item.name
             )
 
+            launch(context, info, view)
+        }
+
+        fun launch(context: Context, info: AppInfo, view: View? = null) {
+
             try {
                 val intent = Intent(Intent.ACTION_MAIN).also {
                     it.flags = Intent.FLAG_ACTIVITY_NEW_TASK or

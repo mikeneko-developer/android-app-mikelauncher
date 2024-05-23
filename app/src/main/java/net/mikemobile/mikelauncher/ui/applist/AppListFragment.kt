@@ -53,13 +53,20 @@ class AppListFragment : Fragment() {
         }
 
         recyclerView = this.view?.findViewById(R.id.recyclerView)
-        adapter = AppAdapter(requireContext(), layoutInflater) { view, info ->
+        adapter = AppAdapter(requireContext(), layoutInflater,
+            { view, info ->
 
-            val item = HomeItem.crateItem(requireContext(),info)
-            Global.selectItem.value = item
+                Global.launch(requireContext(), info, view)
+                closeFragment()
+            },
+            { view, info ->
 
-            adapter?.notifyDataSetChanged()
-        }
+                val item = HomeItem.crateItem(requireContext(),info)
+                Global.selectItem.value = item
+
+                adapter?.notifyDataSetChanged()
+            }
+            )
 
         recyclerView?.adapter = adapter
         recyclerView?.layoutManager = LinearLayoutManager(requireContext())

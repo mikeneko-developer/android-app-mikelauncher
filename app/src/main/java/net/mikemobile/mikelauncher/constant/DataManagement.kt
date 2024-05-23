@@ -47,7 +47,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
         }
 
         if (row != -1 && column != -1) {
-
+            item.page = page
             item.row = row
             item.column = column
 
