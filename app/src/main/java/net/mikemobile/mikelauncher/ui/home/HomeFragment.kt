@@ -1421,7 +1421,6 @@ class HomeFragment : Fragment(),
         val appMenuFloatDialog = AppMenuFloatDialog(requireContext(),
             callbackDelete = {
                 if(item.widgetId != -1) {
-
                     val widgetId = item.widgetId
                     removeWidget(widgetId)
                 }
