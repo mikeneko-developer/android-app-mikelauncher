@@ -1,6 +1,7 @@
 package net.mikemobile.mikelauncher.system
 
 import android.content.Intent
+import android.os.IBinder
 import android.os.Parcel
 import android.os.Parcelable
 import android.service.notification.NotificationListenerService
@@ -22,26 +23,40 @@ class MyNotificationListenerService: NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         Log.d("NotificationListener", "onListenerConnected")
-        //activeNotificationList()
+        activeNotificationList()
+    }
+
+    override fun onListenerDisconnected() {
+        super.onListenerDisconnected()
+        Log.d("NotificationListener", "onListenerDisconnected")
+        // サービスが切断されたときの処理
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         Log.d("NotificationListener", "onNotificationPosted")
-        sbn?.let {
-            // 通知の詳細を取得
-            val packageName = it.packageName
-            val extras = it.notification.extras
-            val title = extras.getString("android.title")
-            val text = extras.getCharSequence("android.text").toString()
-
-            //Log.d("NotificationListener", "Package: $packageName, Title: $title, Text: $text")
-
-            // 通知の内容を処理する
-            handleNotification(packageName, title, text)
-
-        }
+//        sbn?.let {
+//            // 通知の詳細を取得
+//            val packageName = it.packageName
+//            val extras = it.notification.extras
+//            val title = extras.getString("android.title")
+//            val text = extras.getCharSequence("android.text").toString()
+//
+//            //Log.d("NotificationListener", "Package: $packageName, Title: $title, Text: $text")
+//
+//            // 通知の内容を処理する
+//            handleNotification(packageName, title, text)
+//
+//        }
         activeNotificationList()
 
+    }
+
+
+
+    override fun onNotificationRemoved(sbn: StatusBarNotification?) {
+        Log.d("NotificationListener", "onNotificationRemoved")
+        // 通知が削除されたときの処理をここに書きます（オプション）
+        activeNotificationList()
     }
 
     private fun handleNotification(packageName: String, title: String?, text: String?) {
@@ -54,20 +69,21 @@ class MyNotificationListenerService: NotificationListenerService() {
 
     }
 
-    override fun onNotificationRemoved(sbn: StatusBarNotification?) {
-        // 通知が削除されたときの処理をここに書きます（オプション）
-        activeNotificationList()
-    }
-
     private fun activeNotificationList() {
+        Log.d("NotificationListener", "activeNotificationList")
 
         try {
             val activeNotifications = getActiveNotifications()
             val notificationsList = activeNotifications.map { sbn ->
+
                 val extras = sbn.notification.extras
                 val packageName = sbn.packageName
                 val category = sbn.notification.category
-                val title = extras.getString("android.title")
+                val title = if (extras.containsKey("android.title")) {
+                    extras.get("android.title") as? String ?: ""
+                } else {
+                    ""
+                }
                 val text = extras.getCharSequence("android.text").toString()
                 NotificationData(packageName, category, title, text)
             }
@@ -76,7 +92,7 @@ class MyNotificationListenerService: NotificationListenerService() {
             intent.putParcelableArrayListExtra("notifications", ArrayList(notificationsList))
             sendBroadcast(intent)
         }catch(e: Exception) {
-
+            Log.e("NotificationListener", "error:" + e.toString())
         }
     }
 

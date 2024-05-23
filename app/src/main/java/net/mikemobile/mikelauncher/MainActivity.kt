@@ -3,8 +3,11 @@ package net.mikemobile.mikelauncher
 
 import android.appwidget.AppWidgetHost
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
+import android.text.TextUtils
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
@@ -68,6 +71,15 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnLongClick
         // 事前にアプリリストFragmentを生成しておく
         CoroutineScope(Dispatchers.IO).launch {
             AppListFragment.newInstance()
+        }
+
+        // 通知の許可がなければ許可を取れるようにするための呼び出し
+//        if (!isNotificationServiceEnabled()) {
+//            intentMoveNotificationListener()
+//        }
+
+        if (!isNotificationServiceEnabled(this)) {
+            requestNotificationListenerPermission(this)
         }
     }
 
@@ -204,5 +216,36 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnLongClick
     override fun onLongClick(p0: View?): Boolean {
 
         return false
+    }
+
+    fun intentMoveNotificationListener() {
+        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+        startActivity(intent)
+
+    }
+
+    private fun isNotificationServiceEnabled(): Boolean {
+        val packageName = packageName
+        val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+        if (!TextUtils.isEmpty(flat)) {
+            val names = flat.split(":").toTypedArray()
+            for (name in names) {
+                val componentName = android.content.ComponentName.unflattenFromString(name)
+                if (componentName != null && componentName.packageName == packageName) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    fun requestNotificationListenerPermission(context: Context) {
+        val intent = Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
+        context.startActivity(intent)
+    }
+    fun isNotificationServiceEnabled(context: Context): Boolean {
+        val packageName = context.packageName
+        val flat = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
+        return flat != null && flat.contains(packageName)
     }
 }
