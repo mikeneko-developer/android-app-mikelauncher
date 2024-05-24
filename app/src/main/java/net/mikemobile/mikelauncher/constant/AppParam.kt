@@ -33,6 +33,11 @@ enum class ITEM_MOVE {
 
 }
 
+enum class GridScrollType {
+    LEFT,
+    RIGHT
+}
+
 data class ViewSize(var width: Float, var height: Float)
 data class GridSize(var width: Float, var height: Float)
 data class DimenPoint(var x: Float, var y: Float)

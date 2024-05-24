@@ -15,8 +15,8 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import net.mikemobile.mikelauncher.constant.CELL_POINT_NAME
 import net.mikemobile.mikelauncher.constant.DimenPoint
 import net.mikemobile.mikelauncher.constant.Global
-import net.mikemobile.mikelauncher.constant.GridSize
 import net.mikemobile.mikelauncher.constant.GridPoint
+import net.mikemobile.mikelauncher.constant.GridScrollType
 import net.mikemobile.mikelauncher.constant.ViewSize
 import net.mikemobile.mikelauncher.util.processImageToFill
 
@@ -179,7 +179,6 @@ class DragAndDropView: ConstraintLayout {
         if (!enableDisplay && this.measuredWidth > 0 && this.measuredHeight > 0) {
             enableDisplay = true
             listener?.onDisplayEnable(this.measuredWidth, this.measuredHeight)
-
         }
     }
 
@@ -191,24 +190,7 @@ class DragAndDropView: ConstraintLayout {
             DEBUG_MODE
             //&& (onDownEnabled || onTouchMoveEnable)
         ) {
-            touchPoint?.let { move ->
-
-                if (onTouchMoveEnable) {
-                    touchPaint.color = Color.YELLOW
-                } else if (onLongTouchEnabled) {
-                    touchPaint.color = Color.MAGENTA
-                } else if (onDownEnabled) {
-                    touchPaint.color = Color.GREEN
-                } else {
-                    touchPaint.color = Color.CYAN
-                }
-
-                val positionX = move.x
-                val positionY = move.y
-
-                //
-                canvas.drawCircle(positionX, positionY, 130f, touchPaint)
-            }
+            drawTouchPoint(canvas)
 
 //            if (oneCellSize.width != -1f && oneCellSize.height != -1f) {
 //                for (rowId in 0 until row) {
@@ -249,12 +231,19 @@ class DragAndDropView: ConstraintLayout {
         if (onTouchEventDisable) {
             return super.onTouchEvent(motionEvent)
         }
+        android.util.Log.i(TAG,"onTouchEvent")
 
         // タッチ位置判定用
-        touchArea(motionEvent)
+        touchPointEvent(motionEvent)
 
         // タッチ位置の取得と計算
-        touchPoint(motionEvent)
+        movePointEvent(motionEvent)
+
+        // スクロール判定
+        android.util.Log.i(TAG,"onTouchEvent dragAnimation:" + dragAnimation)
+        if (dragAnimation && checkScrollActninEvent(motionEvent)) {
+            return true
+        }
 
         // Cell位置の計算
         selectCell(motionEvent)
@@ -351,7 +340,23 @@ class DragAndDropView: ConstraintLayout {
         return true
     }
 
-    private fun touchArea(motionEvent: MotionEvent) {
+    private fun clearData() {
+        android.util.Log.i(TAG,"clearData")
+        outlineImage = null
+        data = null
+        iconPoint = null
+        movePosition = null
+        updateView()
+    }
+
+    var touchAction = MotionEvent.ACTION_CANCEL
+    var downPosition: DimenPoint? = null
+    var movePosition: DimenPoint? = null
+
+    /**
+     * タッチ箇所を保存・保持する
+     */
+    private fun touchPointEvent(motionEvent: MotionEvent) {
         when (motionEvent.action) {
             MotionEvent.ACTION_DOWN -> {
                 touchPoint = DimenPoint(motionEvent.x, motionEvent.y)
@@ -377,40 +382,24 @@ class DragAndDropView: ConstraintLayout {
         }
     }
 
-
-    private fun clearData() {
-        android.util.Log.i(TAG,"clearData")
-        outlineImage = null
-        data = null
-        iconPoint = null
-        movePosition = null
-        updateView()
-    }
-
-    var touchAction = MotionEvent.ACTION_CANCEL
-    var downPosition: DimenPoint? = null
-
-    private fun touchPoint(motionEvent: MotionEvent) {
+    private fun movePointEvent(motionEvent: MotionEvent) {
         touchAction = motionEvent.action
         when (motionEvent.action) {
             MotionEvent.ACTION_DOWN -> {
                 downPosition = DimenPoint(motionEvent.x, motionEvent.y)
-                movePoint(motionEvent)
+                calcMovePoint(motionEvent)
             }
             MotionEvent.ACTION_MOVE -> {
-                movePoint(motionEvent)
+                calcMovePoint(motionEvent)
             }
             MotionEvent.ACTION_UP -> {
-                movePoint(motionEvent)
+                calcMovePoint(motionEvent)
             }
-            MotionEvent.ACTION_CANCEL -> {
-
-            }
+            MotionEvent.ACTION_CANCEL -> {}
         }
     }
 
-    var movePosition: DimenPoint? = null
-    private fun movePoint(motionEvent: MotionEvent) {
+    private fun calcMovePoint(motionEvent: MotionEvent) {
         downPosition?.let {
             movePosition = DimenPoint(motionEvent.x - it.x, motionEvent.y - it.y)
         }
@@ -469,6 +458,51 @@ class DragAndDropView: ConstraintLayout {
         }
     }
 
+    var leftScroll = false
+    var rightScroll = false
+    fun setScrollEventReset() {
+        leftScroll = false
+        rightScroll = false
+        cancelOneWeitTimer()
+    }
+    private fun checkScrollActninEvent(motionEvent: MotionEvent): Boolean {
+        if (oneCellSize.width == -1f || oneCellSize.height == -1f) return false
+        val touchPointData = touchPoint?: return false
+        android.util.Log.i(TAG + "_SCROLL_ACTION_EVENT","checkScrollActninEvent >>>>>>>>>>>>>>>")
+
+        val touchLeftBorder = oneCellSize.width / 3
+        val touchRightBorder = width - oneCellSize.width / 3
+
+        when (motionEvent.action) {
+            MotionEvent.ACTION_MOVE -> {
+                android.util.Log.i(TAG + "_SCROLL_ACTION_EVENT","checkScrollActninEvent touchRightBorder:" + touchRightBorder + " / " + touchPointData.x)
+                if (touchPointData.x < touchLeftBorder) {
+                    if (!leftScroll){
+                        leftScroll = true
+                        oneWeitTimer(500) {
+                            listener?.onScrollEvent(cellPointName, GridScrollType.LEFT)
+                        }
+                    }
+                    return true
+                } else if (touchRightBorder < touchPointData.x) {
+                    if (!rightScroll) {
+                        rightScroll = true
+                        oneWeitTimer(500) {
+                            listener?.onScrollEvent(cellPointName, GridScrollType.RIGHT)
+                        }
+                    }
+                    return true
+                } else {
+                    setScrollEventReset()
+                }
+            }
+            else -> {
+                setScrollEventReset()
+            }
+        }
+
+        return false
+    }
     //////////////////////////////////////////////////////////////////////
 
     interface OnDragAndDropViewCallback {
@@ -484,6 +518,27 @@ class DragAndDropView: ConstraintLayout {
         fun onTouchClick(cellPointName: CELL_POINT_NAME, point: DimenPoint)
         fun onLongTouchDown(cellPointName: CELL_POINT_NAME, point: DimenPoint)
         fun onSelectGridPoint(gridPoint: GridPoint?, cellPointName: CELL_POINT_NAME, action: Int)
+        fun onScrollEvent(cellPointName: CELL_POINT_NAME, scrollType: GridScrollType)
+    }
+
+    //////////////////////////////////////////////////////////////////////
+    private var oneTimer : Timer? = null
+    private fun oneWeitTimer(time: Long, callback:() -> Unit) {
+        android.util.Log.i(TAG,"oneWeitTimer")
+        cancelOneWeitTimer()
+        oneTimer = Timer(time) {
+            callback.invoke()
+            cancelOneWeitTimer()
+        }
+        oneTimer!!.start()
+    }
+
+    private fun cancelOneWeitTimer() {
+        android.util.Log.i(TAG,"cancelOneWeitTimer")
+        if (oneTimer != null) {
+            oneTimer!!.cancel()
+            oneTimer = null
+        }
     }
 
     //////////////////////////////////////////////////////////////////////
@@ -566,6 +621,7 @@ class DragAndDropView: ConstraintLayout {
     }
 
     var animation = false
+    private var animationTimer : Timer? = null
     private fun startFloatAnimation() {
         if (animation) return
 
@@ -583,7 +639,7 @@ class DragAndDropView: ConstraintLayout {
     val floatLoopTime = 20L
     var count = 0
     private fun animationDraw() {
-        timer = Timer(floatLoopTime) {
+        animationTimer = Timer(floatLoopTime) {
             if (count < (maxCount / 2)) {
                 floatScale = floatScale * (1f + scaleUpDown)
             } else {
@@ -601,14 +657,14 @@ class DragAndDropView: ConstraintLayout {
 
             if (animation) animationDraw()
         }
-        timer!!.start()
+        animationTimer!!.start()
     }
 
     private fun stopFloatAnimation() {
         animation = false
-        if (timer != null) {
-            timer!!.cancel()
-            timer = null
+        if (animationTimer != null) {
+            animationTimer!!.cancel()
+            animationTimer = null
         }
     }
 
@@ -620,7 +676,29 @@ class DragAndDropView: ConstraintLayout {
         imageStartPoint = startPoint
     }
 
+    /**
+     * タッチポイント表示
+     */
+    private fun drawTouchPoint(canvas: Canvas) {
+        touchPoint?.let { move ->
 
+            if (onTouchMoveEnable) {
+                touchPaint.color = Color.YELLOW
+            } else if (onLongTouchEnabled) {
+                touchPaint.color = Color.MAGENTA
+            } else if (onDownEnabled) {
+                touchPaint.color = Color.GREEN
+            } else {
+                touchPaint.color = Color.CYAN
+            }
+
+            val positionX = move.x
+            val positionY = move.y
+
+            //
+            canvas.drawCircle(positionX, positionY, 130f, touchPaint)
+        }
+    }
     /**
      * DragAndDropで描画するデータ
      */

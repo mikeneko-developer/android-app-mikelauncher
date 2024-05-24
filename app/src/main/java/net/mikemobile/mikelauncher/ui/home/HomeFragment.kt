@@ -12,6 +12,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.provider.Settings
 import android.util.Log
 import android.util.Size
@@ -20,6 +21,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
@@ -38,6 +40,7 @@ import net.mikemobile.mikelauncher.constant.DimenPoint
 import net.mikemobile.mikelauncher.constant.Global
 import net.mikemobile.mikelauncher.constant.GridCount
 import net.mikemobile.mikelauncher.constant.GridPoint
+import net.mikemobile.mikelauncher.constant.GridScrollType
 import net.mikemobile.mikelauncher.constant.HomeItemType
 import net.mikemobile.mikelauncher.constant.ITEM_MOVE
 import net.mikemobile.mikelauncher.constant.NotificationFieldData
@@ -819,6 +822,7 @@ class HomeFragment : Fragment(),
 
             val newPoint = Global.calcDimenToGridPoint(point)
             val prevPoint = GridPoint(item.row, item.column)
+            val prevPage = item.page
             if (cellPointName == CELL_POINT_NAME.DESKTOP) {
                 // 移動元のデータを削除する
 
@@ -831,7 +835,7 @@ class HomeFragment : Fragment(),
                     if (item.widgetId != -1) {
                         //widgetなので元に戻す
 
-                        backGrid(item, view, gridPage, prevPoint.row, prevPoint.column, Global.homeItemData, gridCount, adapter)
+                        backGrid(item, view, prevPage, prevPoint.row, prevPoint.column, Global.homeItemData, gridCount, adapter)
                     } else {
 
                         // 移動先のフォルダーのデータを取得する
@@ -842,7 +846,7 @@ class HomeFragment : Fragment(),
                             setFolderInApp(folderItem, item)
                         } else {
                             // なぜかデータが取れなかったので元に戻す
-                            backGrid(item, view, gridPage, prevPoint.row, prevPoint.column, Global.homeItemData, gridCount, adapter)
+                            backGrid(item, view, prevPage, prevPoint.row, prevPoint.column, Global.homeItemData, gridCount, adapter)
                         }
                     }
 
@@ -853,7 +857,7 @@ class HomeFragment : Fragment(),
                         gridPage,
                         newPoint.row, newPoint.column,
                         Global.homeItemData,
-                        gridPage,
+                        prevPage,
                         prevPoint.row, prevPoint.column,
                         Global.homeItemData,  gridCount, adapter, adapter)
                 }
@@ -881,6 +885,7 @@ class HomeFragment : Fragment(),
 
                 val newPoint = Global.calcDimenToGridPoint(point)
                 val prevPoint = GridPoint(0, item.column)
+                val prevPage = item.page
 
                 // 移動元のデータを削除する
                 Global.dockItemData.removeHomeItem(0, prevPoint.row, prevPoint.column)
@@ -926,6 +931,7 @@ class HomeFragment : Fragment(),
                 val newPoint = Global.calcDimenToGridPoint(point)
                 newPoint.row = 0
                 val prevPoint = GridPoint(item.row, item.column)
+                val prevPage = item.page
 
                 Global.homeItemData.removeHomeItem(gridPage, prevPoint.row, prevPoint.column)
 
@@ -936,7 +942,7 @@ class HomeFragment : Fragment(),
                     newPoint.row,
                     newPoint.column,
                     Global.dockItemData,
-                    gridPage,
+                    prevPage,
                     prevPoint.row,
                     prevPoint.column, Global.homeItemData, gridCount, adapter, desktopAdapter)
             }
@@ -1047,6 +1053,7 @@ class HomeFragment : Fragment(),
             dragAndDropFlag = false
         } else if (dragAndDropFlag) {
             if (cellPointName == CELL_POINT_NAME.DESKTOP) {
+                dragAndDropView?.setEnableTouchEvent()
                 endDragAndDrop(desktopAdapter, cellPointName, point)
             } else if (cellPointName == CELL_POINT_NAME.DOCK) {
                 endDragAndDrop(dockAdapter, cellPointName, point)
@@ -1196,6 +1203,26 @@ class HomeFragment : Fragment(),
                 cancelToReturen()
             }
         }
+    }
+
+    // スクロールを実行するためのイベント
+    override fun onScrollEvent(cellPointName: CELL_POINT_NAME, scrollType: GridScrollType) {
+        if(scrollType == GridScrollType.RIGHT) {
+            gridPage += 1
+            if (gridPage > 5) gridPage = 5
+        } else {
+            gridPage -= 1
+            if (gridPage < 0) gridPage = 0
+        }
+
+        viewPager?.currentItem = gridPage
+
+        val handler = Handler()
+        handler.postDelayed(object: Runnable {
+            override fun run() {
+                dragAndDropView?.setScrollEventReset()
+            }
+        }, 500)
     }
 
     private fun moveDragAndDropToItemAction(
@@ -1696,7 +1723,6 @@ class HomeFragment : Fragment(),
         dialog.show(this.parentFragmentManager, "")
     }
 
-
     private fun openMenuDialog() {
         val dialog = MenuDialog("MENU",{
             // 復元されたため、全体のリロードを行う
@@ -1716,6 +1742,8 @@ class HomeFragment : Fragment(),
 
         dialog.show(this.parentFragmentManager, "")
     }
+
+///////////////////////////////////////////////////////////////////////////////////////////////
 
     private fun onClickOpenApps() {
         closeObserve()
@@ -1769,8 +1797,6 @@ class HomeFragment : Fragment(),
                     updateOneNotification(it)
                 }
             }
-
-
         }
     }
     private fun notificationSetup() {
@@ -1779,8 +1805,6 @@ class HomeFragment : Fragment(),
     private fun notificationClear() {
         this.requireContext().unregisterReceiver(notificationReceiver)
     }
-
-
 
     private fun getNotificationDataToNotificationFieldData(item: MyNotificationListenerService.NotificationData): NotificationFieldData {
         val id = item.id
@@ -1880,7 +1904,6 @@ class HomeFragment : Fragment(),
         // ■■■■■■■■アイテムからフォルダーの一覧を取得し、改めてフォルダーを更新する処理をここに追加する
         //val folderList = Global.getAppToFolderList(data.packageName)
     }
-
 
     private fun updateNotificationToPage() {
         val list = Global.notificationCountList

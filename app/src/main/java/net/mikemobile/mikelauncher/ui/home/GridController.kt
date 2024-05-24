@@ -19,10 +19,10 @@ import net.mikemobile.mikelauncher.ui.applist.AppInfo
 
 class GridController(
     private val context: Context,
-    private val page: Int,
+    page: Int,
     private val constraintLayout: ConstraintLayout,
 ) {
-
+    var page: Int = page
     private var column: Int = 1
     private var row: Int = 1
 

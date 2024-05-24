@@ -64,13 +64,13 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
 
 
     fun addItem(
-        position: Int,
+        page: Int,
         newRow: Int,
         newColumn: Int,
         item: HomeItem,
         update: ITEM_MOVE = ITEM_MOVE.MOVING_ITEM_NONE
     ): ITEM_MOVE {
-        val key = "" + position
+        val key = "" + page
         var row = newRow
         var column = newColumn
 
@@ -87,6 +87,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
 
             if (item.widgetField) {
                 // Widget用ブランクデータなのでそのまま追加する
+                item.page = page
                 item.row = row
                 item.column = column
 
@@ -96,6 +97,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
                 return ITEM_MOVE.MOVING_ITEM_ENABLED
             } else if (item.type != HomeItemType.WIDGET.value) {
                 // widgetじゃないのでそのまま追加
+                item.page = page
                 item.row = row
                 item.column = column
 
@@ -133,6 +135,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
 
             if (notItem) {
                 // Widgetの配置場所にアイテムがないのでそのまま追加する
+                item.page = page
                 item.row = row
                 item.column = column
 
@@ -252,7 +255,7 @@ class DataManagement(private val cellPointName: CELL_POINT_NAME) {
             }
 
             // メソッドの際入れ子呼び出しを実施する
-            return addItem(position, newRow, newColumn, outputItem, ITEM_MOVE.MOVING_ITEM_ENABLED)
+            return addItem(page, newRow, newColumn, outputItem, ITEM_MOVE.MOVING_ITEM_ENABLED)
         }
 
         return update

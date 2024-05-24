@@ -67,6 +67,9 @@ class GridAdapter(
             page.setOnGridControllListener(this)
         } else {
             page = constraintLayout?.tag as GridController
+            page.page = position
+            page.reflash()
+
         }
 
         if (constraintLayout?.tag == null) {
@@ -77,8 +80,8 @@ class GridAdapter(
         } else {
             if (cellSize.width != -1f && cellSize.height != -1f) {
                 page.setCellSize(cellSize)
+                page.setFrame(columnCount, rowCount)
             }
-            page.updateView()
         }
 
         constraintLayout.tag = page
