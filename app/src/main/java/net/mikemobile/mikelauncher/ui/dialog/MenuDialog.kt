@@ -4,24 +4,30 @@ import android.app.Dialog
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.icu.text.SimpleDateFormat
 import android.os.Bundle
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import net.mikemobile.mikelauncher.R
 import net.mikemobile.mikelauncher.constant.HomeItemType
+import net.mikemobile.mikelauncher.data.AppBackupPreference
+import java.util.Date
 
 /**
  * Created by mikeneko on 2016/09/10.
  */
 class MenuDialog(
     val title: String,
-    val positiveListener: (HomeItemType) -> Unit) : DialogFragment() {
+    val restoreListener: () -> Unit,
+    val positiveListener: (HomeItemType) -> Unit,
+) : DialogFragment() {
     private lateinit var dialog: Dialog
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -78,6 +84,10 @@ class MenuDialog(
         val btnWidget = view.findViewById<View>(R.id.button5) as Button
         val btnTools = view.findViewById<View>(R.id.button6) as Button
 
+        val btnBackup = view.findViewById<View>(R.id.button2) as Button
+        val btnRestore = view.findViewById<View>(R.id.button8) as Button
+        val tv_backupDate = view.findViewById<View>(R.id.textView4) as TextView
+
         tv_title.text = title
         btn_negative.text = negative
 
@@ -96,6 +106,54 @@ class MenuDialog(
         btnTools.setOnClickListener {
             positiveListener.invoke(HomeItemType.TOOL)
             close()
+        }
+        context?.let {
+            val backupPref = AppBackupPreference(it)
+
+            val datetime = backupPref.getDate()
+
+            if (datetime == 0L) {
+                tv_backupDate.text = "Backupデータなし"
+            } else {
+                val df = SimpleDateFormat("yyyy/MM/dd HH:mm:ss")
+                val date = Date(datetime)
+
+                tv_backupDate.text = "Backup日:" + df.format(date)
+            }
+        }
+
+        btnBackup.setOnClickListener {
+            context?.let {
+                val backupPref = AppBackupPreference(it)
+                backupPref.setAppsList()
+
+                Toast.makeText(it, "バックアップが完了しました", Toast.LENGTH_SHORT).show()
+
+                val datetime = backupPref.getDate()
+                if (datetime == 0L) {
+                    tv_backupDate.text = "Backupデータなし"
+                } else {
+                    val df = SimpleDateFormat("yyyy/MM/dd HH:mm:ss")
+                    val date = Date(datetime)
+
+                    tv_backupDate.text = "Backup日:" + df.format(date)
+                }
+            }
+        }
+
+        btnRestore.setOnClickListener {
+            context?.let {
+                val backupPref = AppBackupPreference(it)
+
+                val datetime = backupPref.getDate()
+                if (datetime == 0L) {
+                    Toast.makeText(it, "復元するデータがありません", Toast.LENGTH_SHORT).show()
+                } else {
+                    backupPref.getAppsList()
+                    restoreListener.invoke()
+                    Toast.makeText(it, "データの復元が完了しました", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
 
 

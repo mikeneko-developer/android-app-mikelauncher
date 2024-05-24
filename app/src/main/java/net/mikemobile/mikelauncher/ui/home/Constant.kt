@@ -5,6 +5,7 @@ import android.app.Activity
 import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetManager
 import android.content.Context
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.util.DisplayMetrics
 import android.util.Log
@@ -398,4 +399,17 @@ fun getWidgetViewPoint(cellSize: GridSize, width: Int, height: Int): GridCount {
     }
 
     return GridCount(rowCount, columnCount)
+}
+
+fun isInteger(value: Float): Boolean {
+    return value % 1 == 0.0f
+}
+
+fun Context.getDrawableFromResource(resourceId: Int): Drawable? {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        resources.getDrawable(resourceId, theme)
+    } else {
+        @Suppress("DEPRECATION")
+        resources.getDrawable(resourceId)
+    }
 }

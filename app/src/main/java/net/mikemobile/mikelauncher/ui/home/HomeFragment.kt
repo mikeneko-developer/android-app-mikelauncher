@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -28,7 +29,6 @@ import androidx.viewpager2.widget.ViewPager2
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import net.mikemobile.mikelauncher.MainActivity
 import net.mikemobile.mikelauncher.R
 import net.mikemobile.mikelauncher.constant.CELL_POINT_NAME
@@ -40,7 +40,7 @@ import net.mikemobile.mikelauncher.constant.GridCount
 import net.mikemobile.mikelauncher.constant.GridPoint
 import net.mikemobile.mikelauncher.constant.HomeItemType
 import net.mikemobile.mikelauncher.constant.ITEM_MOVE
-import net.mikemobile.mikelauncher.constant.NotificationCountData
+import net.mikemobile.mikelauncher.constant.NotificationFieldData
 import net.mikemobile.mikelauncher.constant.ToolType
 import net.mikemobile.mikelauncher.constant.ViewSize
 import net.mikemobile.mikelauncher.constant.WidgetData
@@ -178,15 +178,22 @@ class HomeFragment : Fragment(),
         viewPager!!.adapter = desktopAdapter
         viewPager!!.offscreenPageLimit = 5
 
-
+        val drawable = requireContext().getDrawableFromResource(R.drawable.move_desktop_background)
+        var flag = false
         viewPager!!.setPageTransformer { page, position ->
             val absPosition = Math.abs(position)
 
             // ページの中心からの距離に基づいて拡大率を計算
             var scale = 1f
 
-            if (ANIMATION_MODE == ANIMATION_MODE_SLIDE) {
+            Log.d("ViewPagerScroll", "position:"+position + " / absPosition:"+absPosition)
 
+            if (ANIMATION_MODE == ANIMATION_MODE_SLIDE) {
+                scale = if (isInteger(absPosition)) {
+                    1.0f
+                } else {
+                    0.98f
+                }
             } else if (ANIMATION_MODE == ANIMATION_MODE_SLIDE_SCALE_DOWN) {
                 scale = if (absPosition < 1) {
                     1f - absPosition / 2
@@ -214,8 +221,16 @@ class HomeFragment : Fragment(),
 
             } else if (ANIMATION_MODE == ANIMATION_MODE_SLIDE_SCALE_DOWN) {
                 translationX = -position * (page.width / 2)
-            } else {
+            }
 
+            if (!isInteger(absPosition) && page.background == null) {
+//                CoroutineScope(Dispatchers.Main).launch {
+//                    page.background = drawable
+//                }
+            } else if (isInteger(absPosition) && page.background != null) {
+//                CoroutineScope(Dispatchers.Main).launch {
+//                    page.background = null
+//                }
             }
 
             // ページの表示を更新
@@ -361,13 +376,6 @@ class HomeFragment : Fragment(),
     private fun closeObserve() {
         Global.selectItem.removeObserver(itemObserver)
     }
-
-
-
-
-
-
-
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -528,138 +536,140 @@ class HomeFragment : Fragment(),
     // GridAdapterのListener
 
     override fun onGridPositionView(viewType: CELL_POINT_NAME, layout: LinearLayout, position: Int, row: Int, column: Int) {}
+    override fun onLongClickToEvent(view: View, bitmap: Bitmap, positionX: Float, positionY: Float) {}
+    override fun onLongClickToBlanc(row: Int, column: Int) {}
 
     override fun onCellPositionView(viewType: CELL_POINT_NAME, layout: LinearLayout, position: Int, row: Int, column: Int) {
-        val item: HomeItem? = if (viewType == CELL_POINT_NAME.DESKTOP) {
-            Global.homeItemData.getItem(position, row, column)
-        } else if (viewType == CELL_POINT_NAME.DOCK) {
-            Global.dockItemData.getItem(position, row, column)
-        } else {
-            null
-        }
+        CoroutineScope(Dispatchers.IO).launch {
 
-        item?.let {
-            Log.i(TAG + "-WIDGET_FIELD","setDragAndDropData >> homeItem　data " +
-                    "label:" + item.label + " / type:" + item.type + "\n" +
-                    "widgetId:" + item.widgetId + " / widgetField:" + item.widgetField + "\n" +
-                    "")
+            val item: HomeItem? = if (viewType == CELL_POINT_NAME.DESKTOP) {
+                Global.homeItemData.getItem(position, row, column)
+            } else if (viewType == CELL_POINT_NAME.DOCK) {
+                Global.dockItemData.getItem(position, row, column)
+            } else {
+                null
+            }
 
-            if (item.widgetField) {
-                if (Global.homeItemData.checkNotWidgetData(item.fieldId)) {
-                    // オリジナルのデータがない
-
-                    Log.i(TAG + "-WIDGET_FIELD","setDragAndDropData >> not origin to delete")
-
-                    Global.homeItemData.removeHomeItem(position, row, column)
-                    pref.setAppsList()
-                    return
-                }
-
-                val blankView = getView(this.requireContext(), net.mikemobile.mikelauncher.R.layout.home_item_blank)
-
-                layout.addView(blankView)
-                layout.layoutParams.width = (Global.gridSize.width).toInt()
-                layout.layoutParams.height = (Global.gridSize.height).toInt()
-
-            } else if (it.toolId != -1) {
-
-                if (it.toolId == 2) {
-                    // データを追加する
-                    val list = Global.folderManager.getList(it.folderId)
-
-                    var inItemCount = Global.getNotificationCountToFolder(it.folderId)
-
-                    val folderView = createToolFolderView(requireContext(), it, list, inItemCount)
-
-                    val parent = folderView.parent as ViewGroup
-                    parent?.removeView(folderView)
-
-                    layout.addView(folderView)
-                    layout.layoutParams.width = (Global.gridSize.width).toInt()
-                    layout.layoutParams.height = (Global.gridSize.height).toInt()
-                } else {
-                    val count = Global.getNotificationCount(it.packageName)
-                    val view = createItemView(requireContext(), it, count)
-                    layout.addView(view)
-                    layout.layoutParams.width = (Global.gridSize.width).toInt()
-                    layout.layoutParams.height = (Global.gridSize.height).toInt()
-                }
-
-            } else if (item.widgetId != -1) {
-
-                Log.i(TAG + "-WIDGET","setDragAndDropData >> homeItem　data " +
+            item?.let {
+                Log.i(TAG + "-WIDGET_FIELD","setDragAndDropData >> homeItem　data " +
                         "label:" + item.label + " / type:" + item.type + "\n" +
                         "widgetId:" + item.widgetId + " / widgetField:" + item.widgetField + "\n" +
                         "")
 
+                if (item.widgetField) {
+                    if (Global.homeItemData.checkNotWidgetData(item.fieldId)) {
+                        // オリジナルのデータがない
 
-                val widgetData = getWidgetView(this.requireActivity().applicationContext, mAppWidgetHost!!, it.widgetId)
-                if (widgetData != null) {
-                    if (item.width == -1 || item.height == -1) {
-                        item.width = widgetData.width
-                        item.height = widgetData.height
+                        Log.i(TAG + "-WIDGET_FIELD","setDragAndDropData >> not origin to delete")
 
-                        Global.updateItem(item)
+                        Global.homeItemData.removeHomeItem(position, row, column)
+                        pref.setAppsList()
+                        return@launch
+                    }
+
+                    val blankView = getView(requireContext(), net.mikemobile.mikelauncher.R.layout.home_item_blank)
+
+                    CoroutineScope(Dispatchers.Main).launch {
+                        layout.addView(blankView)
+                        layout.layoutParams.width = (Global.gridSize.width).toInt()
+                        layout.layoutParams.height = (Global.gridSize.height).toInt()
+                    }
+
+                } else if (it.toolId != -1) {
+
+                    if (it.toolId == 2) {
+                        // データを追加する
+                        val list = Global.folderManager.getList(it.folderId)
+
+                        var inItemCount = Global.getNotificationCountToFolder(it.folderId)
+
+                        val folderView = createToolFolderView(requireContext(), it, list, inItemCount)
+
+                        val parent = folderView.parent as ViewGroup
+                        parent?.removeView(folderView)
+
+                        CoroutineScope(Dispatchers.Main).launch {
+                            layout.addView(folderView)
+                            layout.layoutParams.width = (Global.gridSize.width).toInt()
+                            layout.layoutParams.height = (Global.gridSize.height).toInt()
+                        }
+
+                    } else {
+                        val count = Global.getNotificationCount(it.packageName)
+                        val view = createItemView(requireContext(), it, count)
+
+                        CoroutineScope(Dispatchers.Main).launch {
+                            layout.addView(view)
+                            layout.layoutParams.width = (Global.gridSize.width).toInt()
+                            layout.layoutParams.height = (Global.gridSize.height).toInt()
+                        }
+                    }
+
+                } else if (item.widgetId != -1) {
+
+                    Log.i(TAG + "-WIDGET","setDragAndDropData >> homeItem　data " +
+                            "label:" + item.label + " / type:" + item.type + "\n" +
+                            "widgetId:" + item.widgetId + " / widgetField:" + item.widgetField + "\n" +
+                            "")
+
+
+                    val widgetData = getWidgetView(requireActivity().applicationContext, mAppWidgetHost!!, it.widgetId)
+                    if (widgetData != null) {
+                        if (item.width == -1 || item.height == -1) {
+                            item.width = widgetData.width
+                            item.height = widgetData.height
+
+                            Global.updateItem(item)
+                            pref.setAppsList()
+                        }
+
+
+                        val gridCount = Global.calcSizeToGridCount(widgetData.width, widgetData.height)
+
+                        android.util.Log.i(TAG + "-WIDGET","gridCount >> " + "\n" +
+                                "widgetData label:" + widgetData.label + "" + "\n" +
+                                "fieldRow:" + item.fieldRow + " / fieldColumn:" + item.fieldColumn + "\n" +
+                                "rowCount:" + gridCount.rowCount + " / columnCount:" + gridCount.columnCount)
+
+                        if (item.fieldColumn != gridCount.columnCount || item.fieldRow != gridCount.rowCount) {
+                            item.fieldRow = gridCount.rowCount
+                            item.fieldColumn = gridCount.columnCount
+                            Global.updateItem(item)
+                            pref.setAppsList()
+                        }
+
+                        CoroutineScope(Dispatchers.Main).launch {
+                            layout.addView(widgetData.view)
+                            layout.layoutParams.width = (Global.gridSize.width * (gridCount.columnCount)).toInt()
+                            layout.layoutParams.height = (Global.gridSize.height * (gridCount.rowCount)).toInt()
+                        }
+
+                    } else {
+                        // 対象のデータは存在しないためリストから削除する
+
+                        android.util.Log.e(TAG + "-WIDGET","「${item.label}/${item.widgetId}」はWidgetとして存在しないため削除対象")
+                        if (viewType == CELL_POINT_NAME.DESKTOP) {
+                            Global.homeItemData.removeHomeItem(item.page, item.row, item.column)
+                        } else if (viewType == CELL_POINT_NAME.DOCK) {
+                            Global.dockItemData.removeHomeItem(item.page, item.row, item.column)
+                        }
                         pref.setAppsList()
                     }
 
 
-                    val gridCount = Global.calcSizeToGridCount(widgetData.width, widgetData.height)
-
-                    android.util.Log.i(TAG + "-WIDGET","gridCount >> " + "\n" +
-                            "widgetData label:" + widgetData.label + "" + "\n" +
-                            "fieldRow:" + item.fieldRow + " / fieldColumn:" + item.fieldColumn + "\n" +
-                            "rowCount:" + gridCount.rowCount + " / columnCount:" + gridCount.columnCount)
-
-                    if (item.fieldColumn != gridCount.columnCount || item.fieldRow != gridCount.rowCount) {
-                        item.fieldRow = gridCount.rowCount
-                        item.fieldColumn = gridCount.columnCount
-                        Global.updateItem(item)
-                        pref.setAppsList()
+                } else{
+                    val count = Global.getNotificationCount(it.packageName)
+                    val view = createItemView(requireContext(), it, count)
+                    CoroutineScope(Dispatchers.Main).launch {
+                        layout.addView(view)
+                        layout.layoutParams.width = (Global.gridSize.width).toInt()
+                        layout.layoutParams.height = (Global.gridSize.height).toInt()
                     }
-
-                    layout.addView(widgetData.view)
-
-                    layout.layoutParams.width = (Global.gridSize.width * (gridCount.columnCount)).toInt()
-                    layout.layoutParams.height = (Global.gridSize.height * (gridCount.rowCount)).toInt()
-                } else {
-                    // 対象のデータは存在しないためリストから削除する
-
-                    android.util.Log.e(TAG + "-WIDGET","「${item.label}/${item.widgetId}」はWidgetとして存在しないため削除対象")
-                    if (viewType == CELL_POINT_NAME.DESKTOP) {
-                        Global.homeItemData.removeHomeItem(item.page, item.row, item.column)
-                    } else if (viewType == CELL_POINT_NAME.DOCK) {
-                        Global.dockItemData.removeHomeItem(item.page, item.row, item.column)
-                    }
-                    pref.setAppsList()
                 }
-
-
-            } else{
-                val count = Global.getNotificationCount(it.packageName)
-                val view = createItemView(requireContext(), it, count)
-                layout.addView(view)
-                layout.layoutParams.width = (Global.gridSize.width).toInt()
-                layout.layoutParams.height = (Global.gridSize.height).toInt()
-
             }
         }
     }
 
-    override fun onClickOpenApp(viewType: CELL_POINT_NAME, page: Int, row: Int, column: Int) {
-        android.util.Log.i(TAG,"onClickOpenApp")
-
-
-    }
-
-    override fun onLongClickToEvent(view: View, bitmap: Bitmap, positionX: Float, positionY: Float) {
-
-        //setDragAndDropData(view, bitmap, positionX, positionY)
-    }
-
-    override fun onLongClickToBlanc(row: Int, column: Int) {
-
-    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1051,7 +1061,7 @@ class HomeFragment : Fragment(),
         if (dragAndDropFlag) return
 
 
-        triggerVibration(requireContext())
+        triggerVibration(requireContext(), 15L)
 
         val viewSize = viewPager!!.getSize()
         val oneWidth = viewSize.width / Global.COLUMN_COUNT
@@ -1068,15 +1078,6 @@ class HomeFragment : Fragment(),
             null
         }
 
-        if (item != null && item.widgetField) {
-//            if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-//                item = Global.homeItemData.getItem(item.ownerId)
-//            } else if (cellPointName == CELL_POINT_NAME.DOCK) {
-//                item = Global.dockItemData.getItem(item.ownerId)
-//            }
-        }
-
-
         if (item == null || item.widgetId != -1) {
             // 何もしない
         } else if (item.toolId != -1) {
@@ -1085,7 +1086,6 @@ class HomeFragment : Fragment(),
             Global.launch(requireContext(), item, null)
         }
     }
-
 
     /**
      *
@@ -1098,30 +1098,19 @@ class HomeFragment : Fragment(),
         var point = _point
 
         if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-            android.util.Log.i(TAG + TAG_DRAG,"position x:" + point.x + " / y:" + point.y)
-
             val gridPoint = Global.calcDimenToGridPoint(point)
-
-            android.util.Log.i(TAG + TAG_DRAG,"grid column:" + gridPoint.column + " / row:" + gridPoint.row)
-
             var homeItem = Global.homeItemData.getItem(gridPage, gridPoint.row, gridPoint.column)
 
-            android.util.Log.i(TAG + TAG_DRAG,"widgetField :" + homeItem?.widgetField)
-
             if (homeItem != null && homeItem.widgetField) {
-                android.util.Log.i(TAG + TAG_DRAG,"position x:" + point.x + " / y" + point.y)
-
-                var newPoint = Global.calcDimenPointFieldToOriginal(_point, homeItem)
-
-                var originalItem = Global.homeItemData.getItem(homeItem.fieldId)
+                var newPoint = Global.calcDimenPointFieldToOriginal(point, homeItem)
 
                 if (newPoint == null) {
                     // オリジナルのデータがない
                     Global.homeItemData.removeHomeItem(gridPage, homeItem.row, homeItem.column)
                     homeItem =  null
                 }
-
             }
+
             android.util.Log.i(TAG + TAG_DRAG,"homeItem is null = " + (homeItem == null))
 
             if (homeItem == null) {
@@ -1282,7 +1271,7 @@ class HomeFragment : Fragment(),
                 + "\n toolId:" + item.toolId
                 + "\n firldId:" + item.fieldId
         )
-        
+
         // 配置位置がGrid外に出ていないかチェック
         if (row + item.fieldRow >= Global.ROW_COUNT) {
             row = Global.ROW_COUNT - item.fieldRow
@@ -1303,7 +1292,10 @@ class HomeFragment : Fragment(),
             item.row = prevRow
             item.column = prevColumn
             itemData.setItem(page, prevRow, prevColumn, item)
-            prevAdapter.selectItem(view, gridCount, prevRow, prevColumn, false)
+
+            CoroutineScope(Dispatchers.Main).launch {
+                prevAdapter.selectItem(view, gridCount, prevRow, prevColumn, false)
+            }
 
             if (item.type == HomeItemType.WIDGET.value) {
                 itemData.addWidgetFieldToItem(item)
@@ -1311,10 +1303,12 @@ class HomeFragment : Fragment(),
                 val list = itemData.getWidgetFieldList(item)
 
                 for(fieldItem in list) {
-                    val blankView = getView(this.requireContext(), net.mikemobile.mikelauncher.R.layout.home_item_blank)
-                    blankView?.let {
-                        val gridCount = GridCount(1, 1)
-                        prevAdapter.addGrid(blankView, gridCount, fieldItem)
+                    CoroutineScope(Dispatchers.Main).launch {
+                        val blankView = getView(requireContext(), net.mikemobile.mikelauncher.R.layout.home_item_blank)
+                        blankView?.let {
+                            val gridCount = GridCount(1, 1)
+                            prevAdapter.addGrid(blankView, gridCount, fieldItem)
+                        }
                     }
                 }
             }
@@ -1329,20 +1323,24 @@ class HomeFragment : Fragment(),
             }
 
             val moveItemEnable = moveItem == ITEM_MOVE.MOVING_ITEM_ENABLED
-            adapter.selectItem(view, gridCount, item.row, item.column, moveItemEnable)
+
+            CoroutineScope(Dispatchers.Main).launch {
+                adapter.selectItem(view, gridCount, item.row, item.column, moveItemEnable)
+            }
 
             if (item.type == HomeItemType.WIDGET.value) {
                 val list = itemData.getWidgetFieldList(item)
 
                 for(fieldItem in list) {
-                    val blankView = getView(this.requireContext(), net.mikemobile.mikelauncher.R.layout.home_item_blank)
-                    blankView?.let {
-                        val gridCount = GridCount(1, 1)
-                        adapter.addGrid(blankView, gridCount, fieldItem)
+                    CoroutineScope(Dispatchers.Main).launch {
+                        val blankView = getView(requireContext(), net.mikemobile.mikelauncher.R.layout.home_item_blank)
+                        blankView?.let {
+                            val gridCount = GridCount(1, 1)
+                            adapter.addGrid(blankView, gridCount, fieldItem)
+                        }
                     }
                 }
             }
-
         }
     }
 
@@ -1363,11 +1361,41 @@ class HomeFragment : Fragment(),
         item.row = prevrow
         item.column = prevColumn
         itemData.setItem(page, prevrow, prevColumn, item)
-        adapter.selectItem(view, gridCount, prevrow, prevColumn, false)
 
-
+        CoroutineScope(Dispatchers.Main).launch {
+            adapter.selectItem(view, gridCount, prevrow, prevColumn, false)
+        }
     }
 
+    private fun updateGrid(cellPointName: CELL_POINT_NAME, homeItem: HomeItem, count: Int) {
+        if (homeItem.toolId == ToolType.FOLDER.value) {
+            // データを追加する
+            val list = Global.folderManager.getList(homeItem.folderId)
+
+            val folderView = createToolFolderView(requireContext(), homeItem, list, count)
+            val gridCount = Global.calcSizeToGridCount(homeItem.width, homeItem.height)
+
+            CoroutineScope(Dispatchers.Main).launch {
+                if (cellPointName == CELL_POINT_NAME.DESKTOP) {
+                    desktopAdapter.updateGrid(folderView, gridCount, homeItem)
+                } else if (cellPointName == CELL_POINT_NAME.DOCK) {
+                    dockAdapter.updateGrid(folderView, gridCount, homeItem)
+                }
+            }
+
+        } else {
+            val child = createItemView(requireContext(), homeItem, count)
+            val gridCount = Global.calcSizeToGridCount(homeItem.width, homeItem.height)
+
+            CoroutineScope(Dispatchers.Main).launch {
+                if (cellPointName == CELL_POINT_NAME.DESKTOP) {
+                    desktopAdapter.updateGrid(child, gridCount, homeItem)
+                } else if (cellPointName == CELL_POINT_NAME.DOCK) {
+                    dockAdapter.updateGrid(child, gridCount, homeItem)
+                }
+            }
+        }
+    }
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     private fun openOverlayView(dialog: BaseFloatingDialog, isCenter: Boolean = true, isTouchLimit: Boolean = true) {
@@ -1670,7 +1698,13 @@ class HomeFragment : Fragment(),
 
 
     private fun openMenuDialog() {
-        val dialog = MenuDialog("MENU") {
+        val dialog = MenuDialog("MENU",{
+            // 復元されたため、全体のリロードを行う
+
+            desktopAdapter.notifyDataSetChanged()
+            dockAdapter.notifyDataSetChanged()
+
+        }) {
             if (it == HomeItemType.APP) {
                 onClickOpenApps()
             } else if (it == HomeItemType.WIDGET) {
@@ -1746,33 +1780,81 @@ class HomeFragment : Fragment(),
         this.requireContext().unregisterReceiver(notificationReceiver)
     }
 
+
+
+    private fun getNotificationDataToNotificationFieldData(item: MyNotificationListenerService.NotificationData): NotificationFieldData {
+        val id = item.id
+        val key = item.key?: ""
+        val packageName = item.packageName?: ""
+        val category = item.category?: ""
+        val title = item.title?: ""
+        val text = item.text?: ""
+        val bigText = item.bigText?: ""
+
+        return NotificationFieldData(
+            id,
+            key,
+            packageName,
+            category,
+            title,
+            text,
+            bigText
+        )
+    }
+
+    /**
+     * 現在表示している全リストを取得する処理
+     */
+    private fun updateAllNotification(intent: Intent) {
+        //Log.i("NotificationListener", "onReceive")
+        Global.notificationDataReset()
+
+        val notifications = intent.getParcelableArrayListExtra<MyNotificationListenerService.NotificationData>("notifications")
+
+        if (notifications != null) {
+            for(item in notifications) {
+                val newItem = getNotificationDataToNotificationFieldData(item)
+                Global.addNotification(newItem)
+            }
+        }
+        updateNotificationToPage()
+
+    }
+
     private fun updateOneNotification(intent: Intent) {
+        Log.i("NotificationListener", "updateOneNotification")
         val notification_flg = intent.getBooleanExtra("notification_flg", false)
 
         if (notification_flg) {
             val notification = intent.getParcelableExtra<MyNotificationListenerService.NotificationData>("notification")
-            val packageName = notification?.packageName
 
-            packageName?.let {
-                Global.addNotification(packageName)
-                updateNotification(packageName)
+            notification?.let {
+                val newItem = getNotificationDataToNotificationFieldData(notification)
+
+                Log.d("NotificationListener_HomeFragment", "${newItem.packageName} / ${newItem.category} / ${newItem.title} " +
+                        "/ ${newItem.text} / ${newItem.bigText}")
+
+                if (Global.addNotification(newItem)) {
+                    updateNotification(newItem)
+                }
             }
 
         } else {
             val notification = intent.getParcelableExtra<MyNotificationListenerService.NotificationData>("notification")
-            val packageName = notification?.packageName
+            notification?.let {
+                val newItem = getNotificationDataToNotificationFieldData(notification)
 
-            packageName?.let {
-                Global.removeNotification(packageName)
-                updateNotification(packageName)
+                if (Global.removeNotification(newItem)) {
+                    updateNotification(newItem)
+                }
             }
-
         }
     }
 
-    private fun updateNotification(packageName: String) {
+    private fun updateNotification(data: NotificationFieldData) {
+        Log.i("NotificationListener", "updateNotification")
 
-        val appList1 = Global.getAppList(CELL_POINT_NAME.DESKTOP, packageName)
+        val appList1 = Global.getAppList(CELL_POINT_NAME.DESKTOP, data.packageName)
         for(homeItem in appList1) {
             if (homeItem.isFolder()) {
                 var inItemCount = Global.getNotificationCountToFolder(homeItem.folderId)
@@ -1783,7 +1865,7 @@ class HomeFragment : Fragment(),
             }
         }
 
-        val appList2 = Global.getAppList(CELL_POINT_NAME.DOCK, packageName)
+        val appList2 = Global.getAppList(CELL_POINT_NAME.DOCK, data.packageName)
         for(homeItem in appList2) {
 
             if (homeItem.isFolder()) {
@@ -1794,31 +1876,9 @@ class HomeFragment : Fragment(),
                 updateGrid(CELL_POINT_NAME.DOCK, homeItem, count)
             }
         }
-    }
 
-    private fun updateAllNotification(intent: Intent) {
-
-        //Log.i("NotificationListener", "onReceive")
-        Global.notificationDataReset()
-
-        val notifications = intent.getParcelableArrayListExtra<MyNotificationListenerService.NotificationData>("notifications")
-        val notificationText = notifications?.joinToString(separator = "\n") {
-            "PackageName: ${it.packageName} / ${it.category} / ${it.title} / Text: ${it.text}"
-        }
-
-        Log.i("NotificationListener", "notification  /  notificationText:${notificationText}")
-
-        if (notifications != null) {
-            for(item in notifications) {
-                val packageName = item.packageName
-
-                packageName?.let {
-                    Global.addNotification(packageName)
-                }
-            }
-        }
-        updateNotificationToPage()
-
+        // ■■■■■■■■アイテムからフォルダーの一覧を取得し、改めてフォルダーを更新する処理をここに追加する
+        //val folderList = Global.getAppToFolderList(data.packageName)
     }
 
 
@@ -1847,45 +1907,7 @@ class HomeFragment : Fragment(),
                 updateGrid(CELL_POINT_NAME.DOCK, homeItem, count)
             }
         }
-
-//        for(packageName in list.keys) {
-//            var data = if (Global.notificationCountList.containsKey(packageName)) {
-//                Global.notificationCountList[packageName]
-//            } else {
-//                null
-//            }
-//
-//            if (data != null) {
-//                var count = data.count
-//                // パッケージ名から配置されている箇所をリストアップする
-//
-//            }
-//        }
     }
 
-    private fun updateGrid(cellPointName: CELL_POINT_NAME, homeItem: HomeItem, count: Int) {
-        if (homeItem.toolId == ToolType.FOLDER.value) {
-            // データを追加する
-            val list = Global.folderManager.getList(homeItem.folderId)
 
-            val folderView = createToolFolderView(requireContext(), homeItem, list, count)
-            val gridCount = Global.calcSizeToGridCount(homeItem.width, homeItem.height)
-
-            if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-                desktopAdapter.updateGrid(folderView, gridCount, homeItem)
-            } else if (cellPointName == CELL_POINT_NAME.DOCK) {
-                dockAdapter.updateGrid(folderView, gridCount, homeItem)
-            }
-
-        } else {
-            val child = createItemView(requireContext(), homeItem, count)
-            val gridCount = Global.calcSizeToGridCount(homeItem.width, homeItem.height)
-
-            if (cellPointName == CELL_POINT_NAME.DESKTOP) {
-                desktopAdapter.updateGrid(child, gridCount, homeItem)
-            } else if (cellPointName == CELL_POINT_NAME.DOCK) {
-                dockAdapter.updateGrid(child, gridCount, homeItem)
-            }
-        }
-    }
 }

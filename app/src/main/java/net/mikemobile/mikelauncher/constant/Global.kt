@@ -27,11 +27,13 @@ class Global {
         val dockItemData = DataManagement(CELL_POINT_NAME.DOCK)
         val folderManager = FolderManagement()
 
-        val notificationCountList = HashMap<String, NotificationCountData>()
+        val notificationCountList = HashMap<String, ArrayList<NotificationFieldData>>()
 
         val gridSize: GridSize = GridSize(-1f, -1f)
 
         var selectItem: MutableLiveData<HomeItem> = MutableLiveData<HomeItem>(null)
+
+        var appInfoList = ArrayList<AppInfo>()
 
         /**
          * 座標から位置をGridの位置を取得する
@@ -235,38 +237,54 @@ class Global {
             notificationCountList.clear()
         }
 
-        fun removeNotification(packageName: String) {
-            var data = if (notificationCountList.containsKey(packageName)) {
-                notificationCountList[packageName]
+        fun addNotification(item: NotificationFieldData): Boolean {
+            if (item.packageName == "") return false
+
+            var list = if (notificationCountList.containsKey(item.packageName)) {
+                if (notificationCountList[item.packageName] != null) {
+                    notificationCountList[item.packageName]!!
+                } else {
+                    ArrayList<NotificationFieldData>()
+                }
             } else {
-                NotificationCountData(0)
+                ArrayList<NotificationFieldData>()
             }
 
-            if (data == null) {
-                data = NotificationCountData(0)
+            for(notiItem in list) {
+                if (notiItem.title == item.title && notiItem.text == item.text) return false
             }
 
-            data.count -= 1
+            list.add(item)
 
-            if (data.count < 0) data.count
-            notificationCountList[packageName] = data
+            notificationCountList[item.packageName] = list
+
+            return true
         }
 
-        fun addNotification(packageName: String) {
+        fun removeNotification(item: NotificationFieldData): Boolean {
+            if (item.packageName == "") return false
 
-            var data = if (notificationCountList.containsKey(packageName)) {
-                notificationCountList[packageName]
+            var list = if (notificationCountList.containsKey(item.packageName)) {
+                if (notificationCountList[item.packageName] != null) {
+                    notificationCountList[item.packageName]!!
+                } else {
+                    ArrayList<NotificationFieldData>()
+                }
             } else {
-                NotificationCountData(0)
+                ArrayList<NotificationFieldData>()
             }
 
-            if (data == null) {
-                data = NotificationCountData(0)
+            for(i in 0 until list.size) {
+                val notiItem = list[i]
+                if (notiItem.title == item.title && notiItem.text == item.text) {
+                    list.removeAt(i)
+                    break
+                }
             }
 
-            data.count += 1
+            notificationCountList[item.packageName] = list
 
-            notificationCountList[packageName] = data
+            return true
         }
 
         fun getAppList(cellPointName: CELL_POINT_NAME, packageName: String): ArrayList<HomeItem> {
@@ -291,6 +309,10 @@ class Global {
             return ArrayList<HomeItem>()
         }
 
+        fun getAppToFolderList(packageName: String) {
+
+        }
+
         fun getFolderInHomeItemList(folderId: Int): ArrayList<HomeItem> {
             return folderManager.getList(folderId)
         }
@@ -298,7 +320,7 @@ class Global {
         fun getNotificationCount(packageName: String): Int {
             val count = if (notificationCountList.containsKey(packageName)) {
                 if (notificationCountList[packageName] != null) {
-                    notificationCountList[packageName]!!.count
+                    notificationCountList[packageName]!!.size
                 } else {
                     0
                 }

@@ -10,7 +10,7 @@
                 <shape>
 
                     <!-- 背景色 -->
-                    <solid android:color="#AA53FFF9" />
+                    <solid android:color="#0053FFF9" />
 
                     <!-- 角丸 -->
                     <corners android:radius="10dp" />

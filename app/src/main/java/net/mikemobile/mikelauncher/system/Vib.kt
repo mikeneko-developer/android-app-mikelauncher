@@ -6,8 +6,7 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 
-fun triggerVibration(context: Context) {
-    val milliseconds = 30L
+fun triggerVibration(context: Context, milliseconds: Long = 30L) {
 
     val vibrator = context.getSystemService(VIBRATOR_SERVICE) as Vibrator
 

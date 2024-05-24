@@ -7,10 +7,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.constraintlayout.widget.ConstraintLayout
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import net.mikemobile.mikelauncher.R
+import net.mikemobile.mikelauncher.constant.Global
 import net.mikemobile.mikelauncher.constant.GridCount
 import net.mikemobile.mikelauncher.constant.GridSize
 import net.mikemobile.mikelauncher.constant.GridPoint
+import net.mikemobile.mikelauncher.ui.applist.AppInfo
 
 class GridController(
     private val context: Context,
@@ -29,7 +34,6 @@ class GridController(
     interface GridControllListener {
         fun onGridPositionView(view: LinearLayout, position: Int, row: Int, column: Int)
         fun onCellPositionView(view: LinearLayout, position: Int, row: Int, column: Int)
-        fun onClickGrid(row: Int, column: Int)
         fun onLongClickGrid(view: View, row: Int, column: Int)
         fun onLongClickGridBlanc(row: Int, column: Int)
     }
@@ -42,48 +46,76 @@ class GridController(
 
     }
 
+    fun reflash() {
+        cellLayoutMemory.clear()
+
+        constraintLayout.removeAllViews()
+    }
+
     @SuppressLint("ResourceType")
     fun setFrame(column: Int, row: Int) {
         this.column = column
         this.row = row
 
         cellLayoutMemory = HashMap<String, LinearLayout>()
+        CoroutineScope(Dispatchers.IO).launch {
 
-        for(rowId in 0 until row) {
+            for(rowId in 0 until row) {
 
-            // Column追加処理
-            for(columnId in 0 until column) {
-                val cellLayout = LinearLayout(context)
+                // Column追加処理
+                for(columnId in 0 until column) {
+                    val cellLayout = LinearLayout(context)
 
-                val layoutParam = LinearLayout.LayoutParams(
-                    cellSize.width.toInt(),
-                    cellSize.height.toInt()
-                )
+                    val layoutParam = LinearLayout.LayoutParams(
+                        cellSize.width.toInt(),
+                        cellSize.height.toInt()
+                    )
 
-                cellLayout.layoutParams = layoutParam
-                if (rowId % 2 == 0) {
-                    if (columnId % 2 == 0) {
-                        cellLayout.setBackgroundColor(Color.BLACK)
+                    cellLayout.layoutParams = layoutParam
+                    if (rowId % 2 == 0) {
+                        if (columnId % 2 == 0) {
+                            cellLayout.setBackgroundColor(Color.BLACK)
+                        } else {
+                            cellLayout.setBackgroundColor(Color.BLUE)
+                        }
                     } else {
-                        cellLayout.setBackgroundColor(Color.BLUE)
+                        if (columnId % 2 == 0) {
+                            cellLayout.setBackgroundColor(Color.CYAN)
+                        } else {
+                            cellLayout.setBackgroundColor(Color.YELLOW)
+                        }
                     }
-                } else {
-                    if (columnId % 2 == 0) {
-                        cellLayout.setBackgroundColor(Color.CYAN)
-                    } else {
-                        cellLayout.setBackgroundColor(Color.YELLOW)
+                    cellLayout.setBackgroundResource(R.drawable.grid_frame)
+
+                    cellLayout.translationX = columnId * cellSize.width
+                    cellLayout.translationY = rowId * cellSize.height
+
+                    listener?.onCellPositionView(cellLayout, page, rowId, columnId)
+
+                    CoroutineScope(Dispatchers.Main).launch {
+                        constraintLayout.addView(cellLayout)
+                    }
+
+                    cellLayoutMemory["$rowId-$columnId"] = cellLayout
+                }
+            }
+        }
+    }
+
+    fun updateView() {
+        CoroutineScope(Dispatchers.IO).launch {
+
+            for(rowId in 0 until row) {
+
+                // Column追加処理
+                for(columnId in 0 until column) {
+                    cellLayoutMemory["$row-$column"]?.let {
+                        if (it.childCount > 0) {
+                            it.removeAllViews()
+                        }
+                        listener?.onCellPositionView(it, page, rowId, columnId)
                     }
                 }
-                cellLayout.setBackgroundResource(R.drawable.grid_frame)
-
-                cellLayout.translationX = columnId * cellSize.width
-                cellLayout.translationY = rowId * cellSize.height
-
-                listener?.onCellPositionView(cellLayout, page, rowId, columnId)
-
-                constraintLayout.addView(cellLayout)
-
-                cellLayoutMemory["$rowId-$columnId"] = cellLayout
             }
         }
     }

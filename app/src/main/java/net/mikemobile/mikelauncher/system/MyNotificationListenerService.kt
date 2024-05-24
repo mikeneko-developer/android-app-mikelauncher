@@ -1,12 +1,19 @@
 package net.mikemobile.mikelauncher.system
 
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
+import android.os.Bundle
 import android.os.IBinder
 import android.os.Parcel
 import android.os.Parcelable
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import android.text.SpannableString
 import android.util.Log
+import net.mikemobile.mikelauncher.constant.Global
+import net.mikemobile.mikelauncher.constant.NotificationFieldData
 
 class MyNotificationListenerService: NotificationListenerService() {
 
@@ -19,6 +26,7 @@ class MyNotificationListenerService: NotificationListenerService() {
         super.onDestroy()
         Log.d("NotificationListener", "onDestroy")
     }
+
 
     override fun onListenerConnected() {
         super.onListenerConnected()
@@ -36,29 +44,20 @@ class MyNotificationListenerService: NotificationListenerService() {
         Log.d("NotificationListener_onNotificationPosted", "onNotificationPosted")
         sbn?.let {
             // 通知の詳細を取得
-            val packageName = it.packageName
-            val extras = it.notification.extras
-            val category = sbn.notification.category
-            val title = if (extras.containsKey("android.title")) {
-                extras.get("android.title") as? String ?: ""
-            } else {
-                ""
-            }
-            val text = extras.getCharSequence("android.text").toString()
 
-            Log.d("NotificationListener_onNotificationPosted", "Package: $packageName, Title: $title, Text: $text")
-
-            // 通知の内容を処理する
-            val data = NotificationData(packageName, category, title, text)
+            val notificationData = getNotificationFieldData(sbn)
 
             val intent = Intent("com.example.notificationlistener.ACTIVE_NOTIFICATIONS")
             intent.putExtra("notificationType", "one")
-            intent.putExtra("notification", data)
+            intent.putExtra("notification", notificationData)
             intent.putExtra("notification_flg", true)
-            //sendBroadcast(intent)
+            sendBroadcast(intent)
 
         }
-        activeNotificationList()
+
+        if (Global.notificationCountList.size == 0) {
+            activeNotificationList()
+        }
 
     }
 
@@ -66,61 +65,88 @@ class MyNotificationListenerService: NotificationListenerService() {
         Log.d("NotificationListener_onNotificationPosted", "onNotificationRemoved")
         // 通知が削除されたときの処理をここに書きます（オプション）
 
-        var count = 1
         sbn?.let {
-            // 通知の詳細を取得
-            val packageName = it.packageName
-            val extras = it.notification.extras
-            val category = sbn.notification.category
-            val title = if (extras.containsKey("android.title")) {
-                extras.get("android.title") as? String ?: ""
-            } else {
-                ""
-            }
-            val text = extras.getCharSequence("android.text").toString()
-
-            Log.d("NotificationListener_onNotificationPosted", "count: $count, Package: $packageName, Title: $title, Text: $text")
-            count++
-            // 通知の内容を処理する
-            val data = NotificationData(packageName, category, title, text)
+            val notificationData = getNotificationFieldData(sbn)
 
             val intent = Intent("com.example.notificationlistener.ACTIVE_NOTIFICATIONS")
             intent.putExtra("notificationType", "one")
-            intent.putExtra("notification", data)
+            intent.putExtra("notification", notificationData)
             intent.putExtra("notification_flg", false)
-            //sendBroadcast(intent)
+            sendBroadcast(intent)
 
         }
-        activeNotificationList()
+        //activeNotificationList()
     }
 
     private fun activeNotificationList() {
         Log.d("NotificationListener", "activeNotificationList")
 
         try {
+            val list = ArrayList<NotificationData>()
 
-
-            val activeNotifications = this.activeNotifications
-            val notificationsList = activeNotifications.map { sbn ->
-
-                val extras = sbn.notification.extras
-                val packageName = sbn.packageName
-                val category = sbn.notification.category
-                val title = if (extras.containsKey("android.title")) {
-                    extras.get("android.title") as? String ?: ""
-                } else {
-                    ""
+            this.activeNotifications.map { sbn ->
+                val data = getNotificationFieldData(sbn)
+                if (data != null) {
+                    list.add(data)
                 }
-                val text = extras.getCharSequence("android.text").toString()
-                NotificationData(packageName, category, title, text)
             }
+
 
             val intent = Intent("com.example.notificationlistener.ACTIVE_NOTIFICATIONS")
             intent.putExtra("notificationType", "ALL")
-            intent.putParcelableArrayListExtra("notifications", ArrayList(notificationsList))
+            intent.putParcelableArrayListExtra("notifications", list)
+
             sendBroadcast(intent)
         }catch(e: Exception) {
             Log.e("NotificationListener", "error:" + e.toString())
+        }
+    }
+
+    private fun getNotificationFieldData(sbn: StatusBarNotification): NotificationData? {
+        Log.d("NotificationListener", "getNotificationFieldData")
+        val extras = sbn.notification.extras
+        val packageName = sbn.packageName?: ""
+        val category = sbn.notification.category?: ""
+        val id = sbn.id
+        val key = sbn.key
+
+//        if (packageName == "com.google.android.gm") {
+//            for (key in extras.keySet()) {
+//                val value = extras.get(key)
+//                Log.d("NotificationListener", "Key: $key Value: $value")
+//            }
+//        }
+
+        val title = getStringText(extras, "android.title")
+        val text = getStringText(extras, "android.text")
+        val bigText = getStringText(extras, "android.bigText")
+        val subText = getStringText(extras, "android.subText")
+        val summaryText = getStringText(extras, "android.summaryText")
+        val infoText = getStringText(extras, "android.infoText")
+
+        if (title == "" && text == "" && bigText == "" && subText == "" && summaryText == "" && infoText == "") {
+            return null
+        }
+
+        Log.d("NotificationListener", "${packageName} / ${category} / ${title} " +
+                "/ ${text} / ${bigText} / ${subText} / ${summaryText} / ${infoText}")
+
+
+        return NotificationData(id, key, packageName, category, title, text, bigText)
+    }
+
+    private fun getStringText(extras: Bundle, key: String): String {
+        if (extras.containsKey(key)) {
+            val txt = extras.get(key)
+            if (txt is SpannableString) {
+                return txt.toString()
+            } else if (txt is String) {
+                return txt
+            } else {
+                return ""
+            }
+        } else {
+            return ""
         }
     }
 
@@ -140,16 +166,19 @@ class MyNotificationListenerService: NotificationListenerService() {
 
 
 
-
-
-
     data class NotificationData(
+        val id: Int,
+        val key: String?,
         val packageName: String?,
         val category: String?,
         val title: String?,
-        val text: String?
+        val text: String?,
+        val bigText: String?
     ) : Parcelable {
         constructor(parcel: Parcel) : this(
+            parcel.readInt(),
+            parcel.readString(),
+            parcel.readString(),
             parcel.readString(),
             parcel.readString(),
             parcel.readString(),
@@ -157,10 +186,13 @@ class MyNotificationListenerService: NotificationListenerService() {
         )
 
         override fun writeToParcel(parcel: Parcel, flags: Int) {
+            parcel.writeInt(id)
+            parcel.writeString(key)
             parcel.writeString(packageName)
             parcel.writeString(category)
             parcel.writeString(title)
             parcel.writeString(text)
+            parcel.writeString(bigText)
         }
 
         override fun describeContents(): Int {

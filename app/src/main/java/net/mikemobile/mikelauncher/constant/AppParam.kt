@@ -1,6 +1,7 @@
 package net.mikemobile.mikelauncher.constant
 
 import android.view.View
+import java.io.Serializable
 
 
 enum class HomeItemType(val value: Int) {
@@ -45,3 +46,15 @@ data class WidgetData(
 )
 
 data class NotificationCountData(var count: Int)
+
+data class NotificationFieldData(
+    val id: Int,
+    val key: String,
+    val packageName: String,
+    val category: String,
+    val title: String,
+    val text: String,
+    val bigText: String
+): Serializable {
+
+}

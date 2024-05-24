@@ -22,7 +22,7 @@ class AppAdapter(
     private val onLongClick: (view: View, info: AppInfo) -> Unit
 ) : RecyclerView.Adapter<AppAdapter.AppViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppViewHolder =
-        AppViewHolder(inflater.inflate(R.layout.list_item_application, parent, false))
+        AppViewHolder(inflater.inflate(R.layout.folder_item, parent, false))
 
     override fun getItemCount(): Int = list.size
 
@@ -31,16 +31,23 @@ class AppAdapter(
         holder.itemView.setOnClickListener { onClick(holder.icon, info) } // <- ココ
         holder.itemView.setOnLongClickListener {
             onLongClick(holder.icon, info)
-
             return@setOnLongClickListener true
-        } // <- ココ
-
+        }
 
         downLoadImage(info, holder.icon)
 
         //holder.icon.setImageDrawable(info.icon)
         holder.label.text = info.label
-        holder.packageName.text = info.componentName.packageName
+        //holder.packageName.text = info.componentName.packageName
+
+        val count = Global.getNotificationCount(info.packageName)
+        if (count == 0) {
+            holder.notification.text = ""
+            holder.notification.visibility = View.GONE
+        } else {
+            holder.notification.text = "" + count
+            holder.notification.visibility = View.VISIBLE
+        }
 
         if (Global.homeItemData.checkEnableApp( info.componentName.packageName, info.componentName.className)) {
             holder.itemView.setBackgroundResource(R.drawable.select_app)
@@ -49,14 +56,15 @@ class AppAdapter(
         } else if (Global.folderManager.checkEnableApp( info.componentName.packageName, info.componentName.className)) {
             holder.itemView.setBackgroundResource(R.drawable.select_app)
         } else {
-            holder.itemView.setBackgroundDrawable(null)
+            holder.itemView.setBackgroundResource(R.drawable.un_select_app)
         }
     }
 
     class AppViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val icon: ImageView = itemView.findViewById(R.id.icon)
-        val label: TextView = itemView.findViewById(R.id.label)
-        val packageName: TextView = itemView.findViewById(R.id.packageName)
+        val icon: ImageView = itemView.findViewById(R.id.imageView)
+        val notification: TextView = itemView.findViewById(R.id.noti_count)
+        val label: TextView = itemView.findViewById(R.id.textView)
+        //val packageName: TextView = itemView.findViewById(R.id.packageName)
     }
 
     private var list: List<AppInfo> = emptyList()

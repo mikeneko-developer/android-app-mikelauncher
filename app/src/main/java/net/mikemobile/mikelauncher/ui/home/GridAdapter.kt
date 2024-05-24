@@ -25,7 +25,6 @@ interface OnGridAdapterListener {
 
     fun onGridPositionView(viewType: CELL_POINT_NAME, view: LinearLayout, position: Int, row: Int, column: Int)
     fun onCellPositionView(viewType: CELL_POINT_NAME, view: LinearLayout, position: Int, row: Int, column: Int)
-    fun onClickOpenApp(viewType: CELL_POINT_NAME, page: Int, row: Int, column: Int)
     fun onLongClickToEvent(view: View, bitmap: Bitmap, positionX: Float, positionY: Float)
     fun onLongClickToBlanc(row: Int, column: Int)
 }
@@ -70,9 +69,16 @@ class GridAdapter(
             page = constraintLayout?.tag as GridController
         }
 
-        if (cellSize.width != -1f && cellSize.height != -1f) {
-            page.setCellSize(cellSize)
-            page.setFrame(columnCount, rowCount)
+        if (constraintLayout?.tag == null) {
+            if (cellSize.width != -1f && cellSize.height != -1f) {
+                page.setCellSize(cellSize)
+                page.setFrame(columnCount, rowCount)
+            }
+        } else {
+            if (cellSize.width != -1f && cellSize.height != -1f) {
+                page.setCellSize(cellSize)
+            }
+            page.updateView()
         }
 
         constraintLayout.tag = page
@@ -144,15 +150,6 @@ class GridAdapter(
 
 
 
-    }
-
-    override fun onClickGrid(row: Int, column: Int) {
-        if (isLongClick) {
-            isLongClick = false
-            return
-        }
-
-        listener.onClickOpenApp(viewType, page, row, column)
     }
 
     private var isLongClick = false

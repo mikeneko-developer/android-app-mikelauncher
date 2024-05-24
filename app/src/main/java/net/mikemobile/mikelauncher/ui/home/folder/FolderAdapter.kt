@@ -37,15 +37,7 @@ class FolderAdapter(
 
         val homeItem = list[position]
 
-        val count = if (Global.notificationCountList.containsKey(homeItem.packageName)) {
-            if (Global.notificationCountList[homeItem.packageName] != null) {
-                Global.notificationCountList[homeItem.packageName]!!.count
-            } else {
-                0
-            }
-        } else {
-            0
-        }
+        val count = Global.getNotificationCount(homeItem.packageName)
 
         val noti_count = holder.itemView.findViewById<TextView>(R.id.noti_count)
         if (count == 0) {

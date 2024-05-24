@@ -8,8 +8,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import net.mikemobile.mikelauncher.MainActivity
 import net.mikemobile.mikelauncher.R
 import net.mikemobile.mikelauncher.constant.Global
@@ -53,9 +57,7 @@ class AppListFragment : Fragment() {
         }
 
         recyclerView = this.view?.findViewById(R.id.recyclerView)
-        adapter = AppAdapter(requireContext(), layoutInflater,
-            { view, info ->
-
+        adapter = AppAdapter(requireContext(), layoutInflater,      { view, info ->
                 Global.launch(requireContext(), info, view)
                 closeFragment()
             },
@@ -69,8 +71,8 @@ class AppListFragment : Fragment() {
             )
 
         recyclerView?.adapter = adapter
-        recyclerView?.layoutManager = LinearLayoutManager(requireContext())
-        //recyclerView?.layoutManager = GridLayoutManager(requireContext(), 5)
+        //recyclerView?.layoutManager = LinearLayoutManager(requireContext())
+        recyclerView?.layoutManager = GridLayoutManager(requireContext(), 4)
         //recyclerView?.layoutManager = StaggeredGridLayoutManager(2,StaggeredGridLayoutManager.VERTICAL)
         //StaggeredGridLayoutManager
 
@@ -84,7 +86,19 @@ class AppListFragment : Fragment() {
             insets
         }
 
-        adapter?.updateList(viewModel.create(requireContext(), false))
+        if (Global.appInfoList.size == 0) {
+            CoroutineScope(Dispatchers.IO).launch {
+                Global.appInfoList = viewModel.create(requireContext(), false) as ArrayList<AppInfo>
+
+                CoroutineScope(Dispatchers.Main).launch {
+                    adapter?.updateList(Global.appInfoList)
+                }
+            }
+
+        } else {
+
+            adapter?.updateList(Global.appInfoList)
+        }
 
         context?.registerReceiver(packageReceiver, IntentFilter().also {
             it.addAction(Intent.ACTION_PACKAGE_ADDED)
